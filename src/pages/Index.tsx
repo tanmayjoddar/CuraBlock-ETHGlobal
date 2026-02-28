@@ -30,7 +30,7 @@ import NeuroShieldLogo from "@/components/NeuroShieldLogo";
 import { reportScam } from "@/web3/contract";
 
 /* ─────────────────────────────────────
-   GLOBAL CSS — AssetFlow exact layout
+   GLOBAL CSS — Full Window Layout
 ───────────────────────────────────── */
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap');
@@ -47,18 +47,23 @@ const CSS = `
     --muted:   rgba(255,255,255,0.42);
   }
 
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+  }
+
   body { background: var(--bg); font-family: 'Inter', sans-serif; }
 
-  /* ── Full page wrapper ── */
+  /* ── Full page wrapper — fills entire viewport ── */
   .af-page {
+    width: 100vw;
     min-height: 100vh;
     background: var(--bg);
     position: relative;
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 20px 20px 40px;
   }
 
   /* ── Ambient background geometry ── */
@@ -69,7 +74,6 @@ const CSS = `
     z-index: 0;
     overflow: hidden;
   }
-  /* Top-left diagonal shard */
   .af-bg::before {
     content: '';
     position: absolute;
@@ -80,7 +84,6 @@ const CSS = `
     background: linear-gradient(135deg, rgba(20,40,160,0.14) 0%, transparent 60%);
     transform: skew(-12deg, -8deg);
   }
-  /* Bottom-right shard */
   .af-bg::after {
     content: '';
     position: absolute;
@@ -92,7 +95,6 @@ const CSS = `
     transform: skew(12deg, 6deg);
   }
 
-  /* Diagonal line grid overlay */
   .af-bg-grid {
     position: fixed;
     inset: 0;
@@ -108,28 +110,27 @@ const CSS = `
   }
 
   /* ═══════════════════════════════════
-     THE BIG CARD — AssetFlow style
+     THE HERO CARD — stretches full width
   ═══════════════════════════════════ */
   .af-hero-card {
     position: relative;
     z-index: 10;
     width: 100%;
-    max-width: 1160px;
-    border-radius: 26px;
-    border: 1.5px solid rgba(0,229,212,0.3);
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid rgba(0,229,212,0.15);
     background: var(--card);
     box-shadow:
-      0 0 0 1px rgba(0,229,212,0.06),
-      0 0 80px rgba(0,150,255,0.07),
-      0 50px 130px rgba(0,0,0,0.75);
+      0 0 0 1px rgba(0,229,212,0.04),
+      0 20px 60px rgba(0,0,0,0.6);
     overflow: hidden;
     opacity: 0;
-    transform: translateY(32px) scale(0.978);
+    transform: translateY(24px);
     transition: opacity 0.75s cubic-bezier(.22,.68,0,1.2), transform 0.75s cubic-bezier(.22,.68,0,1.2);
   }
   .af-hero-card.show {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 
   /* ── Card header (nav row) ── */
@@ -137,7 +138,7 @@ const CSS = `
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 22px 40px;
+    padding: 20px 40px;
     border-bottom: 1px solid rgba(255,255,255,0.055);
   }
 
@@ -159,7 +160,6 @@ const CSS = `
   }
   .af-logo-text em { color: var(--cyan); font-style: normal; }
 
-  /* Nav links (center) — vertical text list like AssetFlow */
   .af-nav-list {
     display: flex;
     align-items: center;
@@ -184,26 +184,25 @@ const CSS = `
   .af-nav-btn:hover  { color: #fff; background: rgba(255,255,255,0.06); }
   .af-nav-btn.active { color: #fff; background: rgba(255,255,255,0.09); }
 
-  /* ── Card body = 2-col split ── */
+  /* ── Card body = 2-col split, full width ── */
   .af-card-body {
     display: grid;
-    grid-template-columns: 45% 55%;
-    min-height: 520px;
+    grid-template-columns: 40% 60%;
+    min-height: 560px;
   }
 
   /* ── LEFT SIDE ── */
   .af-left {
-    padding: 48px 44px 36px;
+    padding: 56px 56px 44px;
     display: flex;
     flex-direction: column;
   }
 
-  /* Big stacked headline — exact AssetFlow style */
   .af-h1 {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: clamp(64px, 8vw, 96px);
+    font-size: clamp(72px, 7vw, 112px);
     font-weight: 900;
-    line-height: 0.9;
+    line-height: 0.88;
     letter-spacing: -0.01em;
     text-transform: uppercase;
     color: #fff;
@@ -223,16 +222,15 @@ const CSS = `
 
   .af-sub {
     font-family: 'Inter', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 300;
     color: var(--muted);
     line-height: 1.7;
-    max-width: 310px;
+    max-width: 400px;
     margin-bottom: 28px;
     animation: fadeUp 0.9s ease 0.4s both;
   }
 
-  /* CTA row */
   .af-cta-row {
     display: flex;
     align-items: center;
@@ -242,7 +240,6 @@ const CSS = `
     animation: fadeUp 0.9s ease 0.55s both;
   }
 
-  /* White pill — primary CTA */
   .af-btn-primary {
     padding: 13px 38px;
     border-radius: 999px;
@@ -258,7 +255,6 @@ const CSS = `
   }
   .af-btn-primary:hover { background: #dce8ff; transform: translateY(-1px); box-shadow: 0 8px 28px rgba(255,255,255,0.2); }
 
-  /* Ghost secondary */
   .af-btn-ghost {
     padding: 12px 28px;
     border-radius: 999px;
@@ -277,7 +273,6 @@ const CSS = `
   .af-btn-ghost:hover { color: #fff; border-color: rgba(0,229,212,0.5); }
   .af-btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* Protocol logos at bottom (like BTC / ETH / Tether / USDC) */
   .af-protocols {
     display: flex;
     align-items: center;
@@ -305,7 +300,7 @@ const CSS = `
     font-size: 9px;
   }
 
-  /* ── RIGHT SIDE ── */
+  /* ── RIGHT SIDE — fills remaining width ── */
   .af-right {
     position: relative;
     background: linear-gradient(140deg, #0d1252 0%, #160840 35%, #0a1865 65%, #0d1252 100%);
@@ -315,7 +310,6 @@ const CSS = `
     overflow: hidden;
   }
 
-  /* Inner ambient glow for right panel */
   .af-right-glow {
     position: absolute;
     inset: 0;
@@ -325,7 +319,6 @@ const CSS = `
       radial-gradient(ellipse 50% 40% at 75% 65%, rgba(100,55,255,0.2) 0%, transparent 55%);
   }
 
-  /* Diagonal shards inside right panel — like AssetFlow */
   .af-right-shards {
     position: absolute;
     inset: 0;
@@ -351,7 +344,6 @@ const CSS = `
     background: linear-gradient(200deg, transparent 40%, rgba(60,80,220,0.09) 60%, transparent 80%);
   }
 
-  /* 3D object area */
   .af-visual {
     flex: 1;
     display: flex;
@@ -359,24 +351,22 @@ const CSS = `
     justify-content: center;
     position: relative;
     z-index: 2;
-    min-height: 380px;
+    min-height: 420px;
   }
 
-  /* Spinning 3D diamond shield */
   .af-diamond-wrap {
     position: relative;
-    width: 200px;
-    height: 200px;
+    width: 220px;
+    height: 220px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  /* Outer pulse ring */
   .af-pulse-ring {
     position: absolute;
-    width: 280px;
-    height: 280px;
+    width: 320px;
+    height: 320px;
     border-radius: 50%;
     background: radial-gradient(circle, rgba(80,100,255,0.22) 0%, rgba(100,60,255,0.1) 40%, transparent 70%);
     animation: ringPulse 3.5s ease-in-out infinite;
@@ -386,22 +376,20 @@ const CSS = `
     50%      { transform: scale(1.15); opacity: 1; }
   }
 
-  /* Inner glow disc */
   .af-inner-glow {
     position: absolute;
-    width: 160px;
-    height: 160px;
+    width: 180px;
+    height: 180px;
     border-radius: 50%;
     background: radial-gradient(circle, rgba(100,120,255,0.35) 0%, transparent 70%);
     filter: blur(8px);
   }
 
-  /* The 3D rotating SVG diamond */
   .af-diamond-3d {
     position: relative;
     z-index: 2;
-    width: 170px;
-    height: 190px;
+    width: 190px;
+    height: 210px;
     animation: spin3d 9s linear infinite, float3d 4.5s ease-in-out infinite;
     filter: drop-shadow(0 0 20px rgba(120,100,255,0.9)) drop-shadow(0 0 50px rgba(80,60,255,0.5));
   }
@@ -415,10 +403,10 @@ const CSS = `
   }
   @keyframes float3d {
     0%,100% { margin-top: 0px; }
-    50%      { margin-top: -20px; }
+    50%      { margin-top: -22px; }
   }
 
-  /* ── Bottom stat bar ── */
+  /* ── Stat bar across full bottom of hero ── */
   .af-stat-bar {
     position: relative;
     z-index: 3;
@@ -428,10 +416,10 @@ const CSS = `
   }
 
   .af-stat-cell {
-    padding: 18px 22px;
+    padding: 20px 32px;
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 16px;
     background: rgba(8,12,36,0.55);
   }
   .af-stat-cell + .af-stat-cell {
@@ -439,8 +427,8 @@ const CSS = `
   }
 
   .af-stat-icon-box {
-    width: 46px;
-    height: 46px;
+    width: 48px;
+    height: 48px;
     border-radius: 12px;
     background: linear-gradient(135deg, rgba(80,100,255,0.28) 0%, rgba(100,60,255,0.28) 100%);
     border: 1px solid rgba(255,255,255,0.09);
@@ -449,34 +437,37 @@ const CSS = `
     justify-content: center;
     font-size: 22px;
     flex-shrink: 0;
-    animation: fadeUp 0.9s ease 0.6s both;
   }
 
   .af-stat-val {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 28px;
+    font-size: 30px;
     font-weight: 700;
     color: var(--cyan);
     line-height: 1;
   }
   .af-stat-desc {
     font-family: 'Inter', sans-serif;
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 300;
     color: rgba(255,255,255,0.4);
     line-height: 1.45;
     margin-top: 3px;
   }
 
-  /* ── Dashboard below hero ── */
+  /* ── DASHBOARD — full width, no max-width ── */
   .af-dash {
     position: relative;
     z-index: 10;
     width: 100%;
-    max-width: 1160px;
-    padding-top: 32px;
+    padding: 32px 40px 48px;
+    flex: 1;
   }
 
+  /* ── Responsive ── */
+  @media (max-width: 1024px) {
+    .af-card-body { grid-template-columns: 50% 50%; }
+  }
   @media (max-width: 820px) {
     .af-card-body { grid-template-columns: 1fr; }
     .af-right { min-height: 280px; }
@@ -485,6 +476,7 @@ const CSS = `
     .af-left { padding: 32px 24px 28px; }
     .af-h1 { font-size: 60px; }
     .af-visual { min-height: 280px; }
+    .af-dash { padding: 24px 20px 40px; }
   }
 `;
 
@@ -527,29 +519,21 @@ const Diamond3D = () => (
         </feMerge>
       </filter>
     </defs>
-    {/* Top spike */}
     <polygon
       points="85,0 55,55 85,42 115,55"
       fill="url(#dg2)"
       filter="url(#dfglow)"
     />
-    {/* Upper left face */}
     <polygon points="85,42 55,55 22,100 85,90" fill="url(#dg1)" />
-    {/* Upper right face */}
     <polygon points="85,42 115,55 148,100 85,90" fill="url(#dg2)" />
-    {/* Center band */}
     <polygon points="22,100 85,90 148,100 85,112" fill="url(#dg3)" />
-    {/* Lower left face */}
     <polygon points="22,100 85,112 52,145" fill="url(#dg4)" />
-    {/* Lower right face */}
     <polygon points="148,100 85,112 118,145" fill="url(#dg1)" />
-    {/* Bottom spike */}
     <polygon
       points="52,145 85,112 118,145 85,190"
       fill="url(#dg5)"
       filter="url(#dfglow)"
     />
-    {/* Edge highlights */}
     <polyline
       points="85,0 55,55 22,100 52,145 85,190 118,145 148,100 115,55 85,0"
       fill="none"
@@ -607,12 +591,10 @@ const Index = () => {
   );
   const { toast } = useToast();
 
-  // Entrance
   useEffect(() => {
     setTimeout(() => setCardShow(true), 60);
   }, []);
 
-  // Stats
   useEffect(() => {
     const load = () => {
       try {
@@ -790,10 +772,10 @@ const Index = () => {
         <div className="af-bg-grid" />
 
         {/* ═══════════════════════════════
-            HERO CARD
+            HERO CARD — full width
         ═══════════════════════════════ */}
         <div className={`af-hero-card ${cardShow ? "show" : ""}`}>
-          {/* ── Header row: logo · nav · wallet ── */}
+          {/* ── Header row ── */}
           <div className="af-card-header">
             <div className="af-logo" onClick={() => setActiveTab("overview")}>
               <NeuroShieldLogo size={34} />
@@ -840,12 +822,10 @@ const Index = () => {
                 <br />
                 <span className="hl">WEB3</span>
               </h1>
-
               <p className="af-sub">
                 AI-powered smart wallet with real-time threat detection,
                 DAO-driven scam reporting, and on-chain Soulbound identity.
               </p>
-
               <div className="af-cta-row">
                 <button
                   className="af-btn-primary"
@@ -864,8 +844,6 @@ const Index = () => {
                   {isProcessing ? "Analyzing…" : "Try AI Demo"}
                 </button>
               </div>
-
-              {/* Protocol logos */}
               <div className="af-protocols">
                 {protocols.map((p) => (
                   <div key={p.name} className="af-proto-item">
@@ -880,8 +858,6 @@ const Index = () => {
             <div className="af-right">
               <div className="af-right-glow" />
               <div className="af-right-shards" />
-
-              {/* 3D object */}
               <div className="af-visual">
                 <div className="af-diamond-wrap">
                   <div className="af-pulse-ring" />
@@ -893,12 +869,11 @@ const Index = () => {
               </div>
             </div>
           </div>
-          {/* end card-body */}
         </div>
         {/* end hero-card */}
 
         {/* ═══════════════════════════════
-            DASHBOARD
+            DASHBOARD — full width
         ═══════════════════════════════ */}
         <div className="af-dash">
           {activeTab === "overview" && (
@@ -983,7 +958,7 @@ const Index = () => {
           )}
 
           {activeTab === "reports" && (
-            <Card className="group bg-black/20 backdrop-blur-lg border-white/10 hover:bg-black/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/20">
+            <Card className="group bg-black/20 backdrop-blur-lg border-white/10 hover:bg-black/30 transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl hover:shadow-purple-500/20">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <span>Community Threat Reports</span>
@@ -1006,7 +981,7 @@ const Index = () => {
                     </span>
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="group/card p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-300 hover:scale-[1.02]">
+                    <div className="group/card p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-300">
                       <h4 className="text-white font-medium mb-4 flex items-center gap-2">
                         <span>Recent Blocked Transactions</span>
                         <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></div>
@@ -1056,7 +1031,7 @@ const Index = () => {
                         })()}
                       </div>
                     </div>
-                    <div className="group/card p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-300 hover:scale-[1.02]">
+                    <div className="group/card p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-300">
                       <h4 className="text-white font-medium mb-4 flex items-center gap-2">
                         <span>Submit New Report</span>
                         <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
@@ -1084,7 +1059,7 @@ const Index = () => {
                           className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                         />
                         <Button
-                          className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-cyan-500/20 rounded-xl py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 rounded-xl py-3 disabled:opacity-50 disabled:cursor-not-allowed"
                           onClick={handleThreatReport}
                           disabled={
                             isSubmittingReport ||
@@ -1277,6 +1252,7 @@ const Index = () => {
             </div>
           )}
         </div>
+        {/* end af-dash */}
       </div>
 
       {showInterceptor && (
