@@ -634,10 +634,14 @@ const TransactionInterceptor: React.FC<TransactionInterceptorProps> = ({
   // DAO-informed ML boost: when the community has confirmed this address as scam,
   // feed that intelligence back into the ML layer score (federated learning effect).
   if (daoData?.isScammer && mlScore < 90) {
-    console.log(`[Scoring] DAO-confirmed scam → boosting ML score from ${mlScore} to 95`);
+    console.log(
+      `[Scoring] DAO-confirmed scam → boosting ML score from ${mlScore} to 95`,
+    );
     mlScore = 95;
   } else if (daoData && daoData.scamScore > 0 && mlScore < daoData.scamScore) {
-    console.log(`[Scoring] DAO scamScore(${daoData.scamScore}) > ML(${mlScore}) → boosting ML to ${daoData.scamScore}`);
+    console.log(
+      `[Scoring] DAO scamScore(${daoData.scamScore}) > ML(${mlScore}) → boosting ML to ${daoData.scamScore}`,
+    );
     mlScore = Math.max(mlScore, daoData.scamScore);
   }
 
