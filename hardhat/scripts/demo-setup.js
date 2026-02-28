@@ -21,7 +21,7 @@ const { ethers } = require("hardhat");
 // CONFIGURATION — Edit these for your demo
 // ═══════════════════════════════════════════
 
-const QUADRATIC_VOTING_ADDRESS = "0xC9755c1Be2c467c17679CeB5d379eF853641D846";
+const QUADRATIC_VOTING_ADDRESS = "0xf237f2e5BfB3a46B8F4397B19F867C99D0BC7941";
 
 // The address you will send TO during the demo.
 // Default: Ronin Bridge exploiter (perfect villain for the story)

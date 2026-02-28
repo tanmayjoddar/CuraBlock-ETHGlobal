@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 /**
  * @title QuadraticVoting
  * @dev DAO governance with quadratic voting for community-driven scam detection.
- * 
+ *
  * Part of NeuroShield's Dual-Layer Defense system:
  *   Layer 1 (Instant): ML model flags suspicious transactions in real-time
  *   Layer 2 (Long-term): Community curates scam database via quadratic voting
@@ -17,7 +17,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
  *
  * Quadratic voting ensures fairness:
  *   - 1 token   = 1 vote power
- *   - 100 tokens = 10 vote power  
+ *   - 100 tokens = 10 vote power
  *   - 10000 tokens = 100 vote power
  *   This prevents whales from dominating governance.
  *
@@ -389,5 +389,78 @@ contract QuadraticVoting is Ownable, ReentrancyGuard {
     function setShieldToken(address _newToken) external onlyOwner {
         require(_newToken != address(0), "Invalid address");
         shieldToken = IERC20(_newToken);
+    }
+
+    // ════════════════════════════════════════════
+    // THREAT ORACLE — Public on-chain threat feed
+    // Any EVM protocol can query these to check if
+    // a wallet address is dangerous.
+    // ════════════════════════════════════════════
+
+    /**
+     * @dev Returns a threat score (0-100) for any wallet address.
+     *  - Confirmed scammer → scamScore (min 75)
+     *  - Active proposal under review → 30
+     *  - Clean → 0
+     */
+    function getThreatScore(address wallet) public view returns (uint256) {
+        // If DAO has confirmed this address as a scammer
+        if (isScammer[wallet]) {
+            uint256 s = scamScore[wallet];
+            return s > 0 ? s : 75; // minimum confirmed score
+        }
+
+        // Check if any active proposal targets this wallet
+        for (uint256 i = 1; i <= proposalCount; i++) {
+            if (
+                proposals[i].suspiciousAddress == wallet &&
+                proposals[i].isActive &&
+                !proposals[i].executed
+            ) {
+                return 30; // under review
+            }
+        }
+
+        return 0; // clean
+    }
+
+    /**
+     * @dev Returns true if the DAO has confirmed this address as a scammer.
+     */
+    function isConfirmedScam(address wallet) public view returns (bool) {
+        return isScammer[wallet];
+    }
+
+    /**
+     * @dev Returns full DAO voting confidence data for the most recent
+     *      proposal targeting this wallet.
+     * @return votesFor       Quadratic vote power in favour of scam label
+     * @return votesAgainst   Quadratic vote power against scam label
+     * @return totalVoters    Number of unique voters
+     * @return confidencePercent  Percentage agreement (0-100)
+     */
+    function getDAOConfidence(address wallet) external view returns (
+        uint256 votesFor,
+        uint256 votesAgainst,
+        uint256 totalVoters,
+        uint256 confidencePercent
+    ) {
+        // Walk backwards to find the most recent proposal for this wallet
+        for (uint256 i = proposalCount; i >= 1; i--) {
+            if (proposals[i].suspiciousAddress == wallet) {
+                uint256 total = proposals[i].votesFor + proposals[i].votesAgainst;
+                uint256 pct = total > 0
+                    ? (proposals[i].votesFor * 100) / total
+                    : 0;
+                return (
+                    proposals[i].votesFor,
+                    proposals[i].votesAgainst,
+                    proposalVoters[i].length,
+                    pct
+                );
+            }
+            if (i == 0) break; // underflow guard for uint
+        }
+        return (0, 0, 0, 0);
     }
 }
