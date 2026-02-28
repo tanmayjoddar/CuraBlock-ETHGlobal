@@ -92,7 +92,7 @@ func NewOracleService() (*OracleService, error) {
 
 	contractAddr := os.Getenv("QUADRATIC_VOTING_ADDRESS")
 	if contractAddr == "" {
-		contractAddr = "0x4d2fCA51bc7D29a0559FcB05BE23C39344C84456"
+		contractAddr = "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C"
 	}
 
 	client, err := ethclient.Dial(rpcURL)

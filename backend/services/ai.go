@@ -136,7 +136,7 @@ func (s *AIService) AnalyzeTransaction(tx models.Transaction) (float64, error) {
 		return 0, fmt.Errorf("error marshaling request: %w", err)
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Post(s.modelURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return 0, fmt.Errorf("error calling ML model: %w", err)
@@ -199,11 +199,28 @@ func (s *AIService) getDAOScamBoost(address string) float64 {
 
 	normAddr := strings.ToLower(address)
 
-	// Check if address is a DAO-confirmed scam
+	// Check if address is a DAO-confirmed scam in local DB (fastest)
 	var confirmed models.ConfirmedScam
 	if err := s.db.Where("address = ?", normAddr).First(&confirmed).Error; err == nil {
 		// Confirmed scam: boost proportional to community confidence
 		return float64(confirmed.ScamScore) / 100.0 * 0.5 // max +0.5 boost
+	}
+
+	// Fallback: check on-chain directly (catches events the DB missed)
+	oracleService, err := NewOracleService()
+	if err == nil {
+		isScam, err := oracleService.IsConfirmedScam(normAddr)
+		if err == nil && isScam {
+			score, _ := oracleService.GetThreatScore(normAddr)
+			// Sync to DB for future lookups
+			record := models.ConfirmedScam{
+				Address:     normAddr,
+				ScamScore:   int(score),
+				Description: "Synced from on-chain during ML analysis",
+			}
+			s.db.Where("address = ?", normAddr).Assign(record).FirstOrCreate(&record)
+			return float64(score) / 100.0 * 0.5
+		}
 	}
 
 	// Check if address has active proposals (under review)

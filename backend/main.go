@@ -6,7 +6,6 @@ import (
 	"Wallet/backend/services"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -71,22 +70,11 @@ func main() {
 	log.Println("Setting up API routes...")
 	r := routes.SetupMainRouter(db)
 
-	// Get port from environment or use default
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
 	// Set gin mode
 	if cfg.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Start server
-	log.Printf("Server starting on port %s...", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
 	fmt.Println(`
     __        __    _ _      _            _____
     \ \      / /_ _| | | ___| |_   ___   |  ___|_ _ ___ ___

@@ -23,7 +23,10 @@ type Config struct {
 func LoadConfig() (*Config, error) {
 	// Load .env file if it exists and we're not in production
 	if os.Getenv("ENVIRONMENT") != "production" {
-		_ = godotenv.Load()
+		// Try current directory first, then parent (project root)
+		if err := godotenv.Load(); err != nil {
+			_ = godotenv.Load("../.env")
+		}
 	}
 
 	// Special handling for Render which uses PORT instead of SERVER_PORT
@@ -47,8 +50,11 @@ func LoadConfig() (*Config, error) {
 	if cfg.MLModelURL == "" {
 		return nil, fmt.Errorf("ML_MODEL_URL is required")
 	}
+	if cfg.JWTSecret == "" && cfg.Environment == "production" {
+		return nil, fmt.Errorf("JWT_SECRET is required in production")
+	}
 	if cfg.JWTSecret == "" {
-		return nil, fmt.Errorf("JWT_SECRET is required")
+		cfg.JWTSecret = "dev-secret-do-not-use-in-production"
 	}
 
 	return cfg, nil

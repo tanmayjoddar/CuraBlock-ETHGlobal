@@ -197,7 +197,7 @@ func (h *DAOHandler) CreateProposal(c *gin.Context) {
 func (h *DAOHandler) GetScamScore(c *gin.Context) {
 	address := strings.ToLower(c.Param("address"))
 
-	// Check confirmed scams table first
+	// Check confirmed scams table first (fastest: local DB)
 	var confirmed models.ConfirmedScam
 	if err := h.db.Where("address = ?", address).First(&confirmed).Error; err == nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -209,6 +209,30 @@ func (h *DAOHandler) GetScamScore(c *gin.Context) {
 			"source":     "dao_confirmed",
 		})
 		return
+	}
+
+	// Fallback: check on-chain isScammer + scamScore directly
+	// This catches cases where the event listener missed the ProposalExecuted event
+	{
+		isScam, score := h.checkOnChainScamStatus(address)
+		if isScam {
+			// Sync to DB for future fast lookups
+			record := models.ConfirmedScam{
+				Address:     address,
+				ScamScore:   score,
+				ConfirmedAt: time.Now(),
+				Description: "Synced from on-chain isScammer check",
+			}
+			h.db.Where("address = ?", address).Assign(record).FirstOrCreate(&record)
+
+			c.JSON(http.StatusOK, gin.H{
+				"address":   address,
+				"isScam":    true,
+				"scamScore": score,
+				"source":    "on_chain_sync",
+			})
+			return
+		}
 	}
 
 	// Check active proposals for this address
@@ -248,4 +272,26 @@ func (h *DAOHandler) GetAddressStatus(c *gin.Context) {
 		"address": address,
 		"isScam":  isScam,
 	})
+}
+
+// checkOnChainScamStatus reads isScammer + scamScore from the QuadraticVoting contract.
+// Returns (true, score) if the address is a confirmed scammer on-chain.
+func (h *DAOHandler) checkOnChainScamStatus(address string) (bool, int) {
+	// Use the oracle service which has the correct ABI and contract connection
+	oracleService, err := services.NewOracleService()
+	if err != nil {
+		return false, 0
+	}
+
+	isScam, err := oracleService.IsConfirmedScam(address)
+	if err != nil || !isScam {
+		return false, 0
+	}
+
+	score, err := oracleService.GetThreatScore(address)
+	if err != nil {
+		return true, 25 // Default score if we can't read it
+	}
+
+	return true, int(score)
 }
