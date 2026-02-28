@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Shield,
@@ -29,13 +29,559 @@ import SoulboundToken from "@/components/SoulboundToken";
 import NeuroShieldLogo from "@/components/NeuroShieldLogo";
 import { reportScam } from "@/web3/contract";
 
+/* ─────────────────────────────────────
+   GLOBAL CSS — AssetFlow exact layout
+───────────────────────────────────── */
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #07090f;
+    --card:    #0a0c16;
+    --cyan:    #00e5d4;
+    --purple:  #6b3fff;
+    --blue:    #1a3aff;
+    --text:    #ffffff;
+    --muted:   rgba(255,255,255,0.42);
+  }
+
+  body { background: var(--bg); font-family: 'Inter', sans-serif; }
+
+  /* ── Full page wrapper ── */
+  .af-page {
+    min-height: 100vh;
+    background: var(--bg);
+    position: relative;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 20px 40px;
+  }
+
+  /* ── Ambient background geometry ── */
+  .af-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  /* Top-left diagonal shard */
+  .af-bg::before {
+    content: '';
+    position: absolute;
+    top: -15%;
+    left: -10%;
+    width: 55%;
+    height: 80%;
+    background: linear-gradient(135deg, rgba(20,40,160,0.14) 0%, transparent 60%);
+    transform: skew(-12deg, -8deg);
+  }
+  /* Bottom-right shard */
+  .af-bg::after {
+    content: '';
+    position: absolute;
+    bottom: -10%;
+    right: -8%;
+    width: 50%;
+    height: 70%;
+    background: linear-gradient(315deg, rgba(15,30,130,0.12) 0%, transparent 65%);
+    transform: skew(12deg, 6deg);
+  }
+
+  /* Diagonal line grid overlay */
+  .af-bg-grid {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: repeating-linear-gradient(
+      -48deg,
+      transparent,
+      transparent 90px,
+      rgba(30,60,200,0.045) 90px,
+      rgba(30,60,200,0.045) 91px
+    );
+  }
+
+  /* ═══════════════════════════════════
+     THE BIG CARD — AssetFlow style
+  ═══════════════════════════════════ */
+  .af-hero-card {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 1160px;
+    border-radius: 26px;
+    border: 1.5px solid rgba(0,229,212,0.3);
+    background: var(--card);
+    box-shadow:
+      0 0 0 1px rgba(0,229,212,0.06),
+      0 0 80px rgba(0,150,255,0.07),
+      0 50px 130px rgba(0,0,0,0.75);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(32px) scale(0.978);
+    transition: opacity 0.75s cubic-bezier(.22,.68,0,1.2), transform 0.75s cubic-bezier(.22,.68,0,1.2);
+  }
+  .af-hero-card.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  /* ── Card header (nav row) ── */
+  .af-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 40px;
+    border-bottom: 1px solid rgba(255,255,255,0.055);
+  }
+
+  .af-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .af-logo-text {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+  .af-logo-text em { color: var(--cyan); font-style: normal; }
+
+  /* Nav links (center) — vertical text list like AssetFlow */
+  .af-nav-list {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .af-nav-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted);
+    padding: 7px 16px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: color 0.18s, background 0.18s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .af-nav-btn:hover  { color: #fff; background: rgba(255,255,255,0.06); }
+  .af-nav-btn.active { color: #fff; background: rgba(255,255,255,0.09); }
+
+  /* ── Card body = 2-col split ── */
+  .af-card-body {
+    display: grid;
+    grid-template-columns: 45% 55%;
+    min-height: 520px;
+  }
+
+  /* ── LEFT SIDE ── */
+  .af-left {
+    padding: 48px 44px 36px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Big stacked headline — exact AssetFlow style */
+  .af-h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(64px, 8vw, 96px);
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: #fff;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 20px 0;
+    animation: fadeUp 0.9s ease 0.25s both;
+  }
+  .af-h1 .hl { color: var(--cyan); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .af-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 310px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.9s ease 0.4s both;
+  }
+
+  /* CTA row */
+  .af-cta-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+    animation: fadeUp 0.9s ease 0.55s both;
+  }
+
+  /* White pill — primary CTA */
+  .af-btn-primary {
+    padding: 13px 38px;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #080c1e;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(255,255,255,0.14);
+  }
+  .af-btn-primary:hover { background: #dce8ff; transform: translateY(-1px); box-shadow: 0 8px 28px rgba(255,255,255,0.2); }
+
+  /* Ghost secondary */
+  .af-btn-ghost {
+    padding: 12px 28px;
+    border-radius: 999px;
+    background: transparent;
+    color: rgba(255,255,255,0.65);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    border: 1px solid rgba(255,255,255,0.14);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.2s;
+  }
+  .af-btn-ghost:hover { color: #fff; border-color: rgba(0,229,212,0.5); }
+  .af-btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Protocol logos at bottom (like BTC / ETH / Tether / USDC) */
+  .af-protocols {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-top: auto;
+    opacity: 0.32;
+    animation: fadeUp 0.9s ease 0.7s both;
+  }
+  .af-proto-item {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .af-proto-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+  }
+
+  /* ── RIGHT SIDE ── */
+  .af-right {
+    position: relative;
+    background: linear-gradient(140deg, #0d1252 0%, #160840 35%, #0a1865 65%, #0d1252 100%);
+    border-left: 1px solid rgba(255,255,255,0.055);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Inner ambient glow for right panel */
+  .af-right-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 30%, rgba(70,90,255,0.28) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 40% at 75% 65%, rgba(100,55,255,0.2) 0%, transparent 55%);
+  }
+
+  /* Diagonal shards inside right panel — like AssetFlow */
+  .af-right-shards {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .af-right-shards::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 65%;
+    height: 100%;
+    background: linear-gradient(148deg, transparent 38%, rgba(90,110,255,0.13) 52%, transparent 70%);
+    transform: skewX(-5deg);
+  }
+  .af-right-shards::after {
+    content: '';
+    position: absolute;
+    top: 20%;
+    left: -10%;
+    width: 50%;
+    height: 60%;
+    background: linear-gradient(200deg, transparent 40%, rgba(60,80,220,0.09) 60%, transparent 80%);
+  }
+
+  /* 3D object area */
+  .af-visual {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+    min-height: 380px;
+  }
+
+  /* Spinning 3D diamond shield */
+  .af-diamond-wrap {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Outer pulse ring */
+  .af-pulse-ring {
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(80,100,255,0.22) 0%, rgba(100,60,255,0.1) 40%, transparent 70%);
+    animation: ringPulse 3.5s ease-in-out infinite;
+  }
+  @keyframes ringPulse {
+    0%,100% { transform: scale(1); opacity: 0.6; }
+    50%      { transform: scale(1.15); opacity: 1; }
+  }
+
+  /* Inner glow disc */
+  .af-inner-glow {
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(100,120,255,0.35) 0%, transparent 70%);
+    filter: blur(8px);
+  }
+
+  /* The 3D rotating SVG diamond */
+  .af-diamond-3d {
+    position: relative;
+    z-index: 2;
+    width: 170px;
+    height: 190px;
+    animation: spin3d 9s linear infinite, float3d 4.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(120,100,255,0.9)) drop-shadow(0 0 50px rgba(80,60,255,0.5));
+  }
+
+  @keyframes spin3d {
+    0%   { transform: perspective(700px) rotateY(0deg)   rotateX(8deg); }
+    25%  { transform: perspective(700px) rotateY(90deg)  rotateX(4deg); }
+    50%  { transform: perspective(700px) rotateY(180deg) rotateX(8deg); }
+    75%  { transform: perspective(700px) rotateY(270deg) rotateX(12deg); }
+    100% { transform: perspective(700px) rotateY(360deg) rotateX(8deg); }
+  }
+  @keyframes float3d {
+    0%,100% { margin-top: 0px; }
+    50%      { margin-top: -20px; }
+  }
+
+  /* ── Bottom stat bar ── */
+  .af-stat-bar {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .af-stat-cell {
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(8,12,36,0.55);
+  }
+  .af-stat-cell + .af-stat-cell {
+    border-left: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .af-stat-icon-box {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(80,100,255,0.28) 0%, rgba(100,60,255,0.28) 100%);
+    border: 1px solid rgba(255,255,255,0.09);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    animation: fadeUp 0.9s ease 0.6s both;
+  }
+
+  .af-stat-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--cyan);
+    line-height: 1;
+  }
+  .af-stat-desc {
+    font-family: 'Inter', sans-serif;
+    font-size: 10.5px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.45;
+    margin-top: 3px;
+  }
+
+  /* ── Dashboard below hero ── */
+  .af-dash {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 1160px;
+    padding-top: 32px;
+  }
+
+  @media (max-width: 820px) {
+    .af-card-body { grid-template-columns: 1fr; }
+    .af-right { min-height: 280px; }
+    .af-card-header { padding: 18px 22px; flex-wrap: wrap; gap: 10px; }
+    .af-nav-list { display: none; }
+    .af-left { padding: 32px 24px 28px; }
+    .af-h1 { font-size: 60px; }
+    .af-visual { min-height: 280px; }
+  }
+`;
+
+/* ────────────────────────────────────
+   SVG 3D Diamond (Ethereum-inspired)
+──────────────────────────────────── */
+const Diamond3D = () => (
+  <svg
+    viewBox="0 0 170 190"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ width: "100%", height: "100%" }}
+  >
+    <defs>
+      <linearGradient id="dg1" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#b88fff" />
+        <stop offset="100%" stopColor="#5b2dd4" />
+      </linearGradient>
+      <linearGradient id="dg2" x1="1" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#d0b0ff" />
+        <stop offset="100%" stopColor="#7a45e0" />
+      </linearGradient>
+      <linearGradient id="dg3" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#4466ff" />
+        <stop offset="100%" stopColor="#1a2daa" />
+      </linearGradient>
+      <linearGradient id="dg4" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0%" stopColor="#8855ff" />
+        <stop offset="100%" stopColor="#4422cc" />
+      </linearGradient>
+      <linearGradient id="dg5" x1="0.5" y1="0" x2="0.5" y2="1">
+        <stop offset="0%" stopColor="#6b3fff" />
+        <stop offset="100%" stopColor="#2d15aa" />
+      </linearGradient>
+      <filter id="dfglow" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="4" result="b" />
+        <feMerge>
+          <feMergeNode in="b" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    </defs>
+    {/* Top spike */}
+    <polygon
+      points="85,0 55,55 85,42 115,55"
+      fill="url(#dg2)"
+      filter="url(#dfglow)"
+    />
+    {/* Upper left face */}
+    <polygon points="85,42 55,55 22,100 85,90" fill="url(#dg1)" />
+    {/* Upper right face */}
+    <polygon points="85,42 115,55 148,100 85,90" fill="url(#dg2)" />
+    {/* Center band */}
+    <polygon points="22,100 85,90 148,100 85,112" fill="url(#dg3)" />
+    {/* Lower left face */}
+    <polygon points="22,100 85,112 52,145" fill="url(#dg4)" />
+    {/* Lower right face */}
+    <polygon points="148,100 85,112 118,145" fill="url(#dg1)" />
+    {/* Bottom spike */}
+    <polygon
+      points="52,145 85,112 118,145 85,190"
+      fill="url(#dg5)"
+      filter="url(#dfglow)"
+    />
+    {/* Edge highlights */}
+    <polyline
+      points="85,0 55,55 22,100 52,145 85,190 118,145 148,100 115,55 85,0"
+      fill="none"
+      stroke="rgba(210,180,255,0.25)"
+      strokeWidth="0.7"
+    />
+    <line
+      x1="85"
+      y1="0"
+      x2="85"
+      y2="190"
+      stroke="rgba(200,160,255,0.15)"
+      strokeWidth="0.5"
+    />
+    <line
+      x1="22"
+      y1="100"
+      x2="148"
+      y2="100"
+      stroke="rgba(200,160,255,0.15)"
+      strokeWidth="0.5"
+    />
+  </svg>
+);
+
+/* ──────────────── Component ──────────────── */
 const Index = () => {
   const navigate = useNavigate();
+  const [cardShow, setCardShow] = useState(false);
   const [walletConnected, setWalletConnected] = useState(false);
   const [currentAddress, setCurrentAddress] = useState("");
-  const [threatLevel, setThreatLevel] = useState<"safe" | "warning" | "danger">(
-    "safe",
-  );
+  const [threatLevel, setThreatLevel] = useState("safe");
   const [showInterceptor, setShowInterceptor] = useState(false);
   const [transactionDetails, setTransactionDetails] = useState({
     fromAddress: "",
@@ -47,103 +593,68 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [aiScansToday, setAiScansToday] = useState(0);
   const [blockedThreats, setBlockedThreats] = useState(0);
-
-  // Report form state
   const [reportAddress, setReportAddress] = useState("");
   const [reportDescription, setReportDescription] = useState("");
   const [reportEvidence, setReportEvidence] = useState("");
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-
-  // New gamification states
   const [securityScore, setSecurityScore] = useState(0);
   const [shieldLevel, setShieldLevel] = useState("Rookie");
   const [showAIFeedback, setShowAIFeedback] = useState(false);
-  const [lastAction, setLastAction] = useState<
-    "vote" | "report" | "block" | "scan"
-  >("scan");
+  const [lastAction, setLastAction] = useState("scan");
   const [isProcessing, setIsProcessing] = useState(false);
   const [civicClientId] = useState(
     import.meta.env.VITE_CIVIC_CLIENT_ID || "demo_client_id",
   );
-
   const { toast } = useToast();
 
-  // Derive dashboard stats from real localStorage transaction logs
+  // Entrance
   useEffect(() => {
-    const loadRealStats = () => {
-      try {
-        const raw = localStorage.getItem("transaction-logs");
-        const logs: Array<{
-          timestamp: string;
-          to: string;
-          value: number;
-          riskScore: number;
-          riskLevel: string;
-          blocked: boolean;
-        }> = raw ? JSON.parse(raw) : [];
-
-        // Total ML scans = total log entries
-        setAiScansToday(logs.length);
-
-        // Blocked threats
-        const blocked = logs.filter((l) => l.blocked);
-        setBlockedThreats(blocked.length);
-
-        // Saved amount = sum of values from blocked txs (displayed as USD estimate)
-        const totalSaved = blocked.reduce((sum, l) => sum + (l.value || 0), 0);
-
-        // Security score from log quality
-        const baseScore = Math.min(30, logs.length * 2);
-        const blockBonus = Math.min(40, blocked.length * 5);
-        const activityBonus = Math.min(30, logs.length);
-        setSecurityScore(Math.min(100, baseScore + blockBonus + activityBonus));
-
-        // Shield level
-        const s = baseScore + blockBonus + activityBonus;
-        if (s >= 90) setShieldLevel("Guardian Elite");
-        else if (s >= 75) setShieldLevel("Shield Master");
-        else if (s >= 60) setShieldLevel("Defender");
-        else if (s >= 40) setShieldLevel("Guardian");
-        else setShieldLevel("Rookie");
-
-        // Last suspicious address from blocked txs
-        if (blocked.length > 0) {
-          setSuspiciousAddress(blocked[0].to || "");
-        }
-      } catch {
-        // Safe defaults if localStorage fails
-      }
-    };
-
-    loadRealStats();
-    // Refresh when new transactions are logged
-    window.addEventListener("transaction-logged", loadRealStats);
-    return () =>
-      window.removeEventListener("transaction-logged", loadRealStats);
+    setTimeout(() => setCardShow(true), 60);
   }, []);
 
-  // Reset threat level after some time for demo purposes
+  // Stats
+  useEffect(() => {
+    const load = () => {
+      try {
+        const raw = localStorage.getItem("transaction-logs");
+        const logs = raw ? JSON.parse(raw) : [];
+        setAiScansToday(logs.length);
+        const blocked = logs.filter((l) => l.blocked);
+        setBlockedThreats(blocked.length);
+        const b =
+          Math.min(30, logs.length * 2) +
+          Math.min(40, blocked.length * 5) +
+          Math.min(30, logs.length);
+        setSecurityScore(Math.min(100, b));
+        if (b >= 90) setShieldLevel("Guardian Elite");
+        else if (b >= 75) setShieldLevel("Shield Master");
+        else if (b >= 60) setShieldLevel("Defender");
+        else if (b >= 40) setShieldLevel("Guardian");
+        else setShieldLevel("Rookie");
+        if (blocked.length > 0) setSuspiciousAddress(blocked[0].to || "");
+      } catch {}
+    };
+    load();
+    window.addEventListener("transaction-logged", load);
+    return () => window.removeEventListener("transaction-logged", load);
+  }, []);
+
   useEffect(() => {
     if (threatLevel === "danger" && !showInterceptor && !isProcessing) {
-      const timer = setTimeout(() => {
+      const t = setTimeout(() => {
         setThreatLevel("safe");
         toast({
           title: "System Secured",
-          description:
-            "Threat level returned to safe after blocking malicious transaction.",
+          description: "Threat level returned to safe.",
         });
       }, 3000);
-      return () => clearTimeout(timer);
+      return () => clearTimeout(t);
     }
   }, [threatLevel, showInterceptor, isProcessing, toast]);
 
   const simulateScamTransaction = () => {
     if (isProcessing) return;
-
-    console.log("Simulating scam transaction...");
     setIsProcessing(true);
-
-    // Set transaction details for the interceptor
     setTransactionDetails({
       fromAddress:
         currentAddress || "0x742d35Cc6634C0532925a3b8D4C9db96c4b4d8b",
@@ -151,18 +662,14 @@ const Index = () => {
       value: 0.00000000000001,
       gasPrice: 20,
     });
-
-    setAiScansToday((prev) => prev + 1);
+    setAiScansToday((p) => p + 1);
     setThreatLevel("danger");
     setLastAction("scan");
     setShowAIFeedback(true);
-
     toast({
       title: "⚠️ Analyzing Transaction",
       description: "ML model is analyzing the transaction...",
-      variant: "default",
     });
-
     setTimeout(() => {
       setShowInterceptor(true);
       setIsProcessing(false);
@@ -170,60 +677,35 @@ const Index = () => {
   };
 
   const handleBlockTransaction = () => {
-    console.log("Transaction blocked by user");
-
-    setBlockedThreats((prev) => prev + 1);
-
-    setSecurityScore((prev) => Math.min(100, prev + 3));
+    setBlockedThreats((p) => p + 1);
+    setSecurityScore((p) => Math.min(100, p + 3));
     setLastAction("block");
     setShowAIFeedback(true);
-
     setShowInterceptor(false);
     setIsProcessing(false);
-
     toast({
       title: "🛡️ Transaction Blocked",
       description:
         "Malicious transaction successfully blocked. Your funds are safe!",
     });
-
-    setTimeout(() => {
-      setThreatLevel("safe");
-    }, 2000);
+    setTimeout(() => setThreatLevel("safe"), 2000);
   };
 
   const handleCloseInterceptor = () => {
-    console.log("Interceptor closed");
     setShowInterceptor(false);
     setIsProcessing(false);
-
     toast({
       title: "⚠️ Transaction Signed",
       description: "You chose to proceed with the risky transaction.",
       variant: "destructive",
     });
-
-    setTimeout(() => {
-      setThreatLevel("warning");
-    }, 1000);
-  };
-
-  const handleDAOVote = (proposalId: number, vote: "approve" | "reject") => {
-    console.log(`Voting ${vote} on proposal ${proposalId}`);
-    setSecurityScore((prev) => Math.min(100, prev + 2));
-    setLastAction("vote");
-    setShowAIFeedback(true);
-
-    toast({
-      title: "🗳️ Vote Recorded",
-      description: `Your ${vote} vote has been submitted to the DAO.`,
-    });
+    setTimeout(() => setThreatLevel("warning"), 1000);
   };
 
   const handleThreatReport = async () => {
     if (!reportAddress.trim()) {
       toast({
-        title: " Address Required",
+        title: "Address Required",
         description: "Enter the suspicious wallet address to report.",
         variant: "destructive",
       });
@@ -231,13 +713,12 @@ const Index = () => {
     }
     if (!reportDescription.trim()) {
       toast({
-        title: " Description Required",
+        title: "Description Required",
         description: "Describe why this address is suspicious.",
         variant: "destructive",
       });
       return;
     }
-
     setIsSubmittingReport(true);
     try {
       const txHash = await reportScam(
@@ -245,25 +726,20 @@ const Index = () => {
         reportDescription.trim(),
         reportEvidence.trim(),
       );
-
-      setSecurityScore((prev) => Math.min(100, prev + 5));
+      setSecurityScore((p) => Math.min(100, p + 5));
       setLastAction("report");
       setShowAIFeedback(true);
-
-      // Clear form
       setReportAddress("");
       setReportDescription("");
       setReportEvidence("");
-
       toast({
         title: "✅ Report Submitted On-Chain",
         description: `Tx: ${txHash.slice(0, 10)}...${txHash.slice(-8)} — DAO voting is now open.`,
       });
-    } catch (error: any) {
+    } catch (e) {
       toast({
         title: "❌ Report Failed",
-        description:
-          error.message || "Could not submit report. Check wallet connection.",
+        description: e.message || "Could not submit report.",
         variant: "destructive",
       });
     } finally {
@@ -271,19 +747,16 @@ const Index = () => {
     }
   };
 
-  const handleCivicSuccess = (gatewayToken: string) => {
+  const handleCivicSuccess = (gatewayToken) => {
     if (currentAddress) {
-      const store = useCivicStore.getState();
-      store.setGatewayToken(currentAddress, gatewayToken);
-
+      useCivicStore.getState().setGatewayToken(currentAddress, gatewayToken);
       toast({
         title: "Identity Verified",
         description: "Your wallet is now verified with Civic",
       });
     }
   };
-
-  const handleCivicError = (error: Error) => {
+  const handleCivicError = (error) => {
     toast({
       title: "Verification Failed",
       description: error.message,
@@ -291,342 +764,147 @@ const Index = () => {
     });
   };
 
-  const handleNavigation = (item: { id: string; label: string }) => {
-    if (item.id === "register") {
-      navigate("/register");
-    } else {
-      setActiveTab(item.id);
-    }
-  };
+  const navItems = [
+    { id: "overview", label: "Overview", Icon: Shield },
+    { id: "analytics", label: "Analytics", Icon: PieChart },
+    { id: "dao", label: "DAO", Icon: Users },
+    { id: "reports", label: "Reports", Icon: FileText },
+    { id: "sbt", label: "SBT", Icon: Fingerprint },
+    { id: "settings", label: "Settings", Icon: Settings },
+  ];
+
+  const protocols = [
+    { sym: "₿", name: "bitcoin" },
+    { sym: "Ξ", name: "ethereum" },
+    { sym: "◈", name: "monad" },
+    { sym: "◎", name: "soulbound" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <header className="w-full border-b border-white/10 bg-black/20 backdrop-blur-lg animate-fade-in-down">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between w-full">
-            {/* Logo and Title */}
-            <div
-              className="flex items-center space-x-3 group cursor-pointer"
-              onClick={() => setActiveTab("overview")}
-            >
-              <NeuroShieldLogo
-                size={46}
-                className="transition-transform duration-300 group-hover:scale-110"
-              />
-              <div>
-                <h1
-                  className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white"
-                  style={{
-                    fontFamily: "'Inter', system-ui, sans-serif",
-                    letterSpacing: "-0.04em",
-                  }}
-                >
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500">
-                    Neuro
-                  </span>
-                  <span className="text-white">Shield</span>
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-400 uppercase tracking-[0.18em] font-medium">
-                  Web3 Security Protocol
-                </p>
-              </div>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+
+      <div className="af-page">
+        {/* BG layers */}
+        <div className="af-bg" />
+        <div className="af-bg-grid" />
+
+        {/* ═══════════════════════════════
+            HERO CARD
+        ═══════════════════════════════ */}
+        <div className={`af-hero-card ${cardShow ? "show" : ""}`}>
+          {/* ── Header row: logo · nav · wallet ── */}
+          <div className="af-card-header">
+            <div className="af-logo" onClick={() => setActiveTab("overview")}>
+              <NeuroShieldLogo size={34} />
+              <span className="af-logo-text">
+                Neuro<em>Shield</em>
+              </span>
             </div>
 
-            {/* Navigation */}
-            <nav className="hidden md:flex items-center justify-center flex-1 space-x-6 whitespace-nowrap">
-              <button
-                onClick={() => setActiveTab("overview")}
-                className={`flex items-center gap-2 px-3 py-2 transition-all duration-300 hover:scale-105 ${
-                  activeTab === "overview"
-                    ? "text-cyan-400 font-medium scale-105"
-                    : "text-gray-400 hover:text-white hover:underline decoration-cyan-400/50 underline-offset-4"
-                }`}
-              >
-                <Shield className="h-5 w-5" />
-                Overview
-              </button>
-              <button
-                onClick={() => setActiveTab("analytics")}
-                className={`flex items-center gap-2 px-3 py-2 transition-all duration-300 hover:scale-105 ${
-                  activeTab === "analytics"
-                    ? "text-cyan-400 font-medium scale-105"
-                    : "text-gray-400 hover:text-white hover:underline decoration-cyan-400/50 underline-offset-4"
-                }`}
-              >
-                <PieChart className="h-5 w-5" />
-                Analytics
-              </button>
-              <button
-                onClick={() => setActiveTab("dao")}
-                className={`flex items-center gap-2 px-3 py-2 transition-all duration-300 hover:scale-105 ${
-                  activeTab === "dao"
-                    ? "text-cyan-400 font-medium scale-105"
-                    : "text-gray-400 hover:text-white hover:underline decoration-cyan-400/50 underline-offset-4"
-                }`}
-              >
-                <Users className="h-5 w-5" />
-                DAO
-              </button>
-              <button
-                onClick={() => setActiveTab("reports")}
-                className={`flex items-center gap-2 px-3 py-2 transition-all duration-300 hover:scale-105 ${
-                  activeTab === "reports"
-                    ? "text-cyan-400 font-medium scale-105"
-                    : "text-gray-400 hover:text-white hover:underline decoration-cyan-400/50 underline-offset-4"
-                }`}
-              >
-                <FileText className="h-5 w-5" />
-                Reports
-              </button>
-              <button
-                onClick={() => setActiveTab("sbt")}
-                className={`flex items-center gap-2 px-3 py-2 transition-all duration-300 hover:scale-105 ${
-                  activeTab === "sbt"
-                    ? "text-cyan-400 font-medium scale-105"
-                    : "text-gray-400 hover:text-white hover:underline decoration-cyan-400/50 underline-offset-4"
-                }`}
-              >
-                <Fingerprint className="h-5 w-5" />
-                SBT
-              </button>
-              <button
-                onClick={() => setActiveTab("settings")}
-                className={`flex items-center gap-2 px-3 py-2 transition-all duration-300 hover:scale-105 ${
-                  activeTab === "settings"
-                    ? "text-cyan-400 font-medium scale-105"
-                    : "text-gray-400 hover:text-white hover:underline decoration-cyan-400/50 underline-offset-4"
-                }`}
-              >
-                <Settings className="h-5 w-5" />
-                Settings
-              </button>
+            <nav className="af-nav-list">
+              {navItems.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  className={`af-nav-btn ${activeTab === id ? "active" : ""}`}
+                  onClick={() => setActiveTab(id)}
+                >
+                  <Icon style={{ width: 12, height: 12 }} />
+                  {label}
+                </button>
+              ))}
             </nav>
 
-            {/* Connect Wallet with enhanced styling */}
-            <div className="transition-transform hover:scale-105 duration-300">
-              <WalletConnect
-                onConnect={(address) => {
-                  setWalletConnected(true);
-                  setCurrentAddress(address);
-                  toast({
-                    title: "Wallet Connected",
-                    description: `Connected to ${address.slice(0, 6)}...${address.slice(-4)}`,
-                  });
-                }}
-                isConnected={walletConnected}
-                address={currentAddress}
-              />
-            </div>
+            <WalletConnect
+              onConnect={(address) => {
+                setWalletConnected(true);
+                setCurrentAddress(address);
+                toast({
+                  title: "Wallet Connected",
+                  description: `Connected to ${address.slice(0, 6)}...${address.slice(-4)}`,
+                });
+              }}
+              isConnected={walletConnected}
+              address={currentAddress}
+            />
           </div>
-        </div>
-      </header>
 
-      {/* Hero Landing Section */}
-      <div className="relative overflow-hidden border-b border-white/[0.06]">
-        {/* Animated background elements */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/6 w-64 h-64 bg-purple-500/15 rounded-full filter blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-cyan-500/15 rounded-full filter blur-3xl animate-pulse delay-1000"></div>
-        </div>
-
-        <div className="container mx-auto px-6 py-14 lg:py-20 relative z-10">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16">
-            {/* Left side content */}
-            <div className="flex-1 space-y-6 text-center lg:text-left">
-              <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] tracking-tight"
-                style={{
-                  fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-                  letterSpacing: "-0.03em",
-                }}
-              >
-                Secure Your{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500">
-                  Digital Assets
-                </span>
+          {/* ── 2-col body ── */}
+          <div className="af-card-body">
+            {/* LEFT */}
+            <div className="af-left">
+              <h1 className="af-h1">
+                SECURE
                 <br />
-                <span className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white/80">
-                  with AI
-                </span>
+                THE
+                <br />
+                <span className="hl">WEB3</span>
               </h1>
-              <p
-                className="text-base sm:text-lg text-gray-400 max-w-lg leading-relaxed"
-                style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
-              >
+
+              <p className="af-sub">
                 AI-powered smart wallet with real-time threat detection,
                 DAO-driven scam reporting, and on-chain Soulbound identity.
               </p>
-              <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-2">
+
+              <div className="af-cta-row">
                 <button
-                  className="group relative inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-sm font-bold text-white overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(34,211,238,0.3)] active:scale-[0.98]"
+                  className="af-btn-primary"
                   onClick={() => navigate("/send")}
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%)",
-                  }}
                 >
-                  <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                  <span className="relative flex items-center gap-2">
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M5 12h14M12 5l7 7-7 7" />
-                    </svg>
-                    Send Tokens
-                  </span>
+                  Start now
                 </button>
                 <button
-                  className="group relative inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-sm font-bold text-white/90 border border-white/[0.12] bg-white/[0.04] backdrop-blur-sm overflow-hidden transition-all duration-300 hover:scale-105 hover:border-purple-400/40 hover:text-white hover:shadow-[0_0_25px_rgba(168,85,247,0.2)] active:scale-[0.98]"
+                  className="af-btn-ghost"
                   onClick={simulateScamTransaction}
+                  disabled={showInterceptor || isProcessing}
                 >
-                  <span className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                  <span className="relative flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-purple-400 group-hover:text-purple-300 transition-colors" />
-                    Try AI Demo
-                  </span>
+                  <Zap
+                    style={{ width: 13, height: 13, color: "var(--cyan)" }}
+                  />
+                  {isProcessing ? "Analyzing…" : "Try AI Demo"}
                 </button>
+              </div>
+
+              {/* Protocol logos */}
+              <div className="af-protocols">
+                {protocols.map((p) => (
+                  <div key={p.name} className="af-proto-item">
+                    <div className="af-proto-icon">{p.sym}</div>
+                    <span>{p.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Right side — 3D Y-axis spinning wallet card (front + back) */}
-            <div className="flex-1 flex justify-center card-scene">
-              <div
-                className="relative w-72 lg:w-80 card-spinner"
-                style={{ aspectRatio: "4/5" }}
-              >
-                {/* ===== FRONT FACE ===== */}
-                <div className="card-face bg-gradient-to-br from-slate-800/90 to-slate-900/90 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-xl p-6">
-                  <div className="flex justify-between items-center mb-5">
-                    <Shield className="h-7 w-7 text-cyan-400" />
-                    <div className="flex space-x-1.5">
-                      {[...Array(3)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"
-                        ></div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">
-                        Wallet
-                      </div>
-                      <div className="text-sm text-white font-mono">
-                        {currentAddress
-                          ? `${currentAddress.slice(0, 6)}...${currentAddress.slice(-4)}`
-                          : "Not Connected"}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">
-                        Shield Level
-                      </div>
-                      <div className="text-sm text-cyan-400 font-semibold">
-                        {shieldLevel}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-5 grid grid-cols-3 gap-2">
-                    <div className="p-2 bg-white/[0.04] rounded-lg text-center border border-white/[0.06]">
-                      <div className="text-sm font-bold text-white">
-                        {aiScansToday}
-                      </div>
-                      <div className="text-[9px] text-gray-500">Scans</div>
-                    </div>
-                    <div className="p-2 bg-white/[0.04] rounded-lg text-center border border-white/[0.06]">
-                      <div className="text-sm font-bold text-white">
-                        {blockedThreats}
-                      </div>
-                      <div className="text-[9px] text-gray-500">Blocked</div>
-                    </div>
-                    <div className="p-2 bg-white/[0.04] rounded-lg text-center border border-white/[0.06]">
-                      <div className="text-sm font-bold text-white">
-                        {securityScore}
-                      </div>
-                      <div className="text-[9px] text-gray-500">Score</div>
-                    </div>
+            {/* RIGHT */}
+            <div className="af-right">
+              <div className="af-right-glow" />
+              <div className="af-right-shards" />
+
+              {/* 3D object */}
+              <div className="af-visual">
+                <div className="af-diamond-wrap">
+                  <div className="af-pulse-ring" />
+                  <div className="af-inner-glow" />
+                  <div className="af-diamond-3d">
+                    <Diamond3D />
                   </div>
                 </div>
-
-                {/* ===== BACK FACE ===== */}
-                <div className="card-face-back bg-gradient-to-br from-purple-900/90 to-slate-900/90 rounded-2xl border border-purple-400/20 shadow-2xl backdrop-blur-xl p-6">
-                  <div className="flex justify-between items-center mb-5">
-                    <Zap className="h-7 w-7 text-purple-400" />
-                    <span className="text-[10px] uppercase tracking-widest text-purple-400 font-semibold">
-                      NeuroShield
-                    </span>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">
-                        Network
-                      </div>
-                      <div className="text-sm text-white font-mono">
-                        Monad Testnet
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">
-                        Protection
-                      </div>
-                      <div className="text-sm text-purple-300 font-semibold">
-                        AI + DAO + SBT
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">
-                        Status
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                        <span className="text-sm text-green-400 font-semibold">
-                          Active
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-5 p-3 bg-white/[0.04] rounded-lg border border-white/[0.06] text-center">
-                    <div className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">
-                      NeuroShield
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-1">
-                      Diversion 5.0
-                    </div>
-                    <div className="text-[9px] text-gray-500 mt-0.5">
-                      Secured by Smart Contracts
-                    </div>
-                  </div>
-                </div>
-
-                {/* Glow follows the card */}
-                <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500/15 to-purple-500/15 rounded-3xl blur-2xl -z-10"></div>
               </div>
             </div>
           </div>
+          {/* end card-body */}
         </div>
-      </div>
+        {/* end hero-card */}
 
-      {/* Main Content */}
-      <div className="flex">
-        {/* Main Content */}
-        <main className="container mx-auto px-6 py-8">
+        {/* ═══════════════════════════════
+            DASHBOARD
+        ═══════════════════════════════ */}
+        <div className="af-dash">
           {activeTab === "overview" && (
             <div className="space-y-6">
-              {/* Security Operations Dashboard */}
               <SecurityScore />
-
-              {/* Quick Actions */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Send Tokens */}
                 <Card className="bg-black/20 backdrop-blur-lg border-white/10 hover:border-emerald-500/30 transition-all duration-300">
                   <CardContent className="p-5">
                     <div className="flex items-start gap-4">
@@ -651,16 +929,13 @@ const Index = () => {
                             to="/send"
                             className="flex items-center justify-center gap-2"
                           >
-                            Send Securely
-                            <Zap className="w-3.5 h-3.5" />
+                            Send Securely <Zap className="w-3.5 h-3.5" />
                           </Link>
                         </Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* AI Demo */}
                 <Card className="bg-black/20 backdrop-blur-lg border-white/10 hover:border-amber-500/30 transition-all duration-300">
                   <CardContent className="p-5">
                     <div className="flex items-start gap-4">
@@ -693,26 +968,25 @@ const Index = () => {
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Transaction History */}
               <TransactionHistory />
             </div>
           )}
+
           {activeTab === "analytics" && (
             <WalletAnalytics walletAddress={currentAddress} />
           )}
+
           {activeTab === "dao" && (
             <div className="space-y-6">
               <DAOPanel onNavigateToReports={() => setActiveTab("reports")} />
             </div>
           )}
+
           {activeTab === "reports" && (
             <Card className="group bg-black/20 backdrop-blur-lg border-white/10 hover:bg-black/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/20">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <span className="transform group-hover:scale-110 transition-transform">
-                    Community Threat Reports
-                  </span>
+                  <span>Community Threat Reports</span>
                   <div className="relative h-6 w-6">
                     <div className="absolute inset-0 bg-purple-500 rounded-full opacity-20 group-hover:animate-ping"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -726,13 +1000,12 @@ const Index = () => {
                   <p className="text-gray-400 group-hover:text-gray-300 transition-colors">
                     Help protect the Web3 community by reporting suspicious
                     contracts and activities.
-                    <span className="text-purple-400 font-medium group-hover:animate-pulse">
+                    <span className="text-purple-400 font-medium">
                       {" "}
                       Earn +5 Shield Points per verified report!
                     </span>
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Recent reports from real transaction logs */}
                     <div className="group/card p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-300 hover:scale-[1.02]">
                       <h4 className="text-white font-medium mb-4 flex items-center gap-2">
                         <span>Recent Blocked Transactions</span>
@@ -745,9 +1018,9 @@ const Index = () => {
                               localStorage.getItem("transaction-logs");
                             const logs = rawLogs ? JSON.parse(rawLogs) : [];
                             const blocked = logs
-                              .filter((l: any) => l.blocked)
+                              .filter((l) => l.blocked)
                               .slice(0, 3);
-                            if (blocked.length === 0) {
+                            if (blocked.length === 0)
                               return (
                                 <div className="text-center py-4 text-gray-500">
                                   No blocked transactions yet. Use the AI Demo
@@ -755,8 +1028,7 @@ const Index = () => {
                                   here.
                                 </div>
                               );
-                            }
-                            return blocked.map((log: any, i: number) => (
+                            return blocked.map((log, i) => (
                               <div
                                 key={i}
                                 className="flex justify-between items-center p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
@@ -784,7 +1056,6 @@ const Index = () => {
                         })()}
                       </div>
                     </div>
-                    {/* Enhanced submit form */}
                     <div className="group/card p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-300 hover:scale-[1.02]">
                       <h4 className="text-white font-medium mb-4 flex items-center gap-2">
                         <span>Submit New Report</span>
@@ -813,7 +1084,7 @@ const Index = () => {
                           className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                         />
                         <Button
-                          className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white transform transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-cyan-500/20 rounded-xl py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-cyan-500/20 rounded-xl py-3 disabled:opacity-50 disabled:cursor-not-allowed"
                           onClick={handleThreatReport}
                           disabled={
                             isSubmittingReport ||
@@ -825,16 +1096,12 @@ const Index = () => {
                             {isSubmittingReport ? (
                               <>
                                 <span className="animate-spin">⏳</span>
-                                <span className="text-lg">
-                                  Submitting to Blockchain...
-                                </span>
+                                <span>Submitting to Blockchain...</span>
                               </>
                             ) : (
                               <>
-                                <span className="text-lg">
-                                  Report Suspicious Activity
-                                </span>
-                                <span className="text-sm bg-white/20 px-2 py-1 rounded-full group-hover/card:animate-pulse">
+                                <span>Report Suspicious Activity</span>
+                                <span className="text-sm bg-white/20 px-2 py-1 rounded-full">
                                   +5 Points
                                 </span>
                               </>
@@ -847,7 +1114,8 @@ const Index = () => {
                 </div>
               </CardContent>
             </Card>
-          )}{" "}
+          )}
+
           {activeTab === "recovery" && (
             <Card className="bg-black/20 backdrop-blur-lg border-white/10">
               <CardHeader>
@@ -856,13 +1124,11 @@ const Index = () => {
                   <span>Social Recovery Settings</span>
                 </CardTitle>
                 <p className="text-gray-400 mt-2">
-                  Set up trusted guardians who can help you recover your wallet
-                  if you lose access. A minimum of {2} guardians must approve
-                  the recovery process.
+                  Set up trusted guardians who can help you recover your wallet.
+                  A minimum of 2 guardians must approve the recovery process.
                 </p>
               </CardHeader>
               <CardContent className="space-y-6">
-                {" "}
                 <SimpleCivicAuth
                   clientId={civicClientId}
                   walletAddress={currentAddress}
@@ -873,6 +1139,7 @@ const Index = () => {
               </CardContent>
             </Card>
           )}
+
           {activeTab === "sbt" && (
             <div className="space-y-6">
               <Card className="group bg-black/20 backdrop-blur-lg border-white/10 hover:bg-black/30 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20">
@@ -893,12 +1160,10 @@ const Index = () => {
                   <SoulboundToken />
                 </CardContent>
               </Card>
-
-              {/* Trust Score Formula */}
               <Card className="group bg-black/20 backdrop-blur-lg border-white/10 hover:bg-black/30 transition-all duration-300">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <span className="text-lg">How Your Trust Score Works</span>
+                  <CardTitle className="text-white">
+                    How Your Trust Score Works
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -928,8 +1193,6 @@ const Index = () => {
                   </p>
                 </CardContent>
               </Card>
-
-              {/* Technical Details */}
               <Card className="group bg-black/20 backdrop-blur-lg border-white/10 hover:bg-black/30 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="text-white">
@@ -938,41 +1201,39 @@ const Index = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-gray-400">Token Standard</span>
-                      <span className="text-white font-mono">
-                        ERC-721 (Soulbound)
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-gray-400">Transfer Behavior</span>
-                      <span className="text-red-400 font-mono">
-                        revert("SBTs cannot be transferred")
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-gray-400">Metadata Storage</span>
-                      <span className="text-green-400 font-mono">
-                        On-chain Base64 JSON
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-gray-400">Network</span>
-                      <span className="text-white font-mono">
-                        Monad Testnet (10143)
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                      <span className="text-gray-400">Updatable By</span>
-                      <span className="text-white font-mono">
-                        WalletVerifier (authorized only)
-                      </span>
-                    </div>
+                    {[
+                      ["Token Standard", "ERC-721 (Soulbound)", "text-white"],
+                      [
+                        "Transfer Behavior",
+                        'revert("SBTs cannot be transferred")',
+                        "text-red-400",
+                      ],
+                      [
+                        "Metadata Storage",
+                        "On-chain Base64 JSON",
+                        "text-green-400",
+                      ],
+                      ["Network", "Monad Testnet (10143)", "text-white"],
+                      [
+                        "Updatable By",
+                        "WalletVerifier (authorized only)",
+                        "text-white",
+                      ],
+                    ].map(([k, v, c]) => (
+                      <div
+                        key={k}
+                        className="flex justify-between items-center p-3 bg-white/5 rounded-lg"
+                      >
+                        <span className="text-gray-400">{k}</span>
+                        <span className={`font-mono ${c}`}>{v}</span>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
             </div>
           )}
+
           {activeTab === "settings" && (
             <div className="space-y-6">
               <Card className="bg-black/20 backdrop-blur-lg border-white/10">
@@ -983,73 +1244,57 @@ const Index = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                      <div>
-                        <h4 className="text-white font-medium">
-                          Real-time Protection
-                        </h4>
-                        <p className="text-sm text-gray-400">
-                          Enable AI-powered transaction scanning
-                        </p>
+                    {[
+                      [
+                        "Real-time Protection",
+                        "Enable AI-powered transaction scanning",
+                      ],
+                      [
+                        "Auto-block High Risk",
+                        "Automatically block transactions with 90%+ risk score",
+                      ],
+                      [
+                        "Community Reports",
+                        "Show warnings from community-reported contracts",
+                      ],
+                    ].map(([title, desc]) => (
+                      <div
+                        key={title}
+                        className="flex items-center justify-between p-4 bg-white/5 rounded-lg"
+                      >
+                        <div>
+                          <h4 className="text-white font-medium">{title}</h4>
+                          <p className="text-sm text-gray-400">{desc}</p>
+                        </div>
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                          Active
+                        </Badge>
                       </div>
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                        Active
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                      <div>
-                        <h4 className="text-white font-medium">
-                          Auto-block High Risk
-                        </h4>
-                        <p className="text-sm text-gray-400">
-                          Automatically block transactions with 90%+ risk score
-                        </p>
-                      </div>
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                        Active
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                      <div>
-                        <h4 className="text-white font-medium">
-                          Community Reports
-                        </h4>
-                        <p className="text-sm text-gray-400">
-                          Show warnings from community-reported contracts
-                        </p>
-                      </div>
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                        Active
-                      </Badge>
-                    </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
             </div>
           )}
-        </main>
+        </div>
       </div>
 
-      {/* Enhanced Modals and Notifications */}
       {showInterceptor && (
         <TransactionInterceptor
           onClose={handleCloseInterceptor}
           onBlock={handleBlockTransaction}
-          onDismiss={handleCloseInterceptor}
           fromAddress={transactionDetails.fromAddress}
           toAddress={transactionDetails.toAddress}
           value={transactionDetails.value}
           gasPrice={transactionDetails.gasPrice}
         />
       )}
-
-      {/* AI Learning Feedback */}
       <AILearningFeedback
         trigger={showAIFeedback}
         actionType={lastAction}
         onComplete={() => setShowAIFeedback(false)}
       />
-    </div>
+    </>
   );
 };
 
