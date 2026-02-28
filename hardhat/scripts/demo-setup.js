@@ -12,7 +12,7 @@
  * After 1 hour, run `demo-execute.js` to finalize.
  *
  * Usage:
- *   npx hardhat run scripts/demo-setup.js --network monadTestnet
+ *   npx hardhat run scripts/demo-setup.js --network sepolia
  */
 
 const { ethers } = require("hardhat");
@@ -21,7 +21,7 @@ const { ethers } = require("hardhat");
 // CONFIGURATION — Edit these for your demo
 // ═══════════════════════════════════════════
 
-const QUADRATIC_VOTING_ADDRESS = "0xf237f2e5BfB3a46B8F4397B19F867C99D0BC7941";
+const QUADRATIC_VOTING_ADDRESS = "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
 
 // The address you will send TO during the demo.
 // Default: Ronin Bridge exploiter (perfect villain for the story)
@@ -37,7 +37,7 @@ async function main() {
   console.log("📍 Deployer:", deployer.address);
 
   const balance = await ethers.provider.getBalance(deployer.address);
-  console.log("💰 MON Balance:", ethers.formatEther(balance));
+  console.log("💰 ETH Balance:", ethers.formatEther(balance));
 
   // Get QuadraticVoting contract
   const votingContract = await ethers.getContractAt(
@@ -67,23 +67,19 @@ async function main() {
   }
 
   // ─────────────────────────────────────────
-  // STEP 1: Set voting period to 1 hour
+  // STEP 1: Set voting period to 60 seconds (for live demo)
   // ─────────────────────────────────────────
-  console.log("\n📏 Step 1: Setting voting period to 1 hour...");
+  console.log("\n📏 Step 1: Setting voting period to 60 seconds...");
   try {
     const currentPeriod = await votingContract.votingPeriod();
-    console.log(
-      "   Current voting period:",
-      Number(currentPeriod) / 3600,
-      "hours",
-    );
+    console.log("   Current voting period:", Number(currentPeriod), "seconds");
 
-    if (Number(currentPeriod) !== 3600) {
-      const tx1 = await votingContract.setVotingPeriod(3600); // 1 hour
+    if (Number(currentPeriod) !== 60) {
+      const tx1 = await votingContract.setVotingPeriod(60); // 60 seconds
       await tx1.wait();
-      console.log("   ✅ Voting period set to 1 hour");
+      console.log("   ✅ Voting period set to 60 seconds");
     } else {
-      console.log("   ✅ Already set to 1 hour");
+      console.log("   ✅ Already set to 60 seconds");
     }
   } catch (err) {
     console.log("   ⚠️  Could not set voting period:", err.message);
@@ -163,9 +159,7 @@ async function main() {
     console.log("⏰ Execute after:", endTime.toLocaleString());
     console.log("");
     console.log("👉 NEXT STEP: After the voting period ends, run:");
-    console.log(
-      `   npx hardhat run scripts/demo-execute.js --network monadTestnet`,
-    );
+    console.log(`   npx hardhat run scripts/demo-execute.js --network sepolia`);
     console.log("═══════════════════════════════════════════════════");
   } catch (err) {
     console.error("❌ Setup failed:", err.message);

@@ -8,12 +8,12 @@
  * send to that address during the live demo.
  *
  * Usage:
- *   npx hardhat run scripts/demo-execute.js --network monadTestnet
+ *   npx hardhat run scripts/demo-execute.js --network sepolia
  */
 
 const { ethers } = require("hardhat");
 
-const QUADRATIC_VOTING_ADDRESS = "0xf237f2e5BfB3a46B8F4397B19F867C99D0BC7941";
+const QUADRATIC_VOTING_ADDRESS = "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
 const DEMO_SCAM_ADDRESS = "0x098B716B8Aaf21512996dC57EB0615e2383E2f96";
 
 async function main() {

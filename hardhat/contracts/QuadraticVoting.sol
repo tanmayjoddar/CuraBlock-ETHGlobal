@@ -382,7 +382,7 @@ contract QuadraticVoting is Ownable, ReentrancyGuard {
     // ════════════════════════════════════════════
 
     function setVotingPeriod(uint256 _newPeriod) external onlyOwner {
-        require(_newPeriod >= 1 hours && _newPeriod <= 30 days, "Invalid period");
+        require(_newPeriod >= 30 seconds && _newPeriod <= 30 days, "Invalid period");
         votingPeriod = _newPeriod;
     }
 
