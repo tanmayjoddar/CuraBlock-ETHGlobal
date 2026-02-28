@@ -752,6 +752,7 @@ const Index = () => {
     { id: "dao", label: "DAO", Icon: Users },
     { id: "reports", label: "Reports", Icon: FileText },
     { id: "sbt", label: "SBT", Icon: Fingerprint },
+    { id: "oracle", label: "Oracle", Icon: Zap },
     { id: "settings", label: "Settings", Icon: Settings },
   ];
 
@@ -789,7 +790,13 @@ const Index = () => {
                 <button
                   key={id}
                   className={`af-nav-btn ${activeTab === id ? "active" : ""}`}
-                  onClick={() => setActiveTab(id)}
+                  onClick={() => {
+                    if (id === "oracle") {
+                      navigate("/oracle");
+                    } else {
+                      setActiveTab(id);
+                    }
+                  }}
                 >
                   <Icon style={{ width: 12, height: 12 }} />
                   {label}
