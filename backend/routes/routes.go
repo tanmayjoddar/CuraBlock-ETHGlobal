@@ -87,6 +87,17 @@ func SetupMainRouter(db *gorm.DB) *gin.Engine {
 		sbtHandler = handlers.NewSBTHandler(sbtService)
 	}
 
+	// Initialize Oracle service (Threat Oracle — reads from QuadraticVoting contract)
+	oracleService, oracleErr := services.NewOracleService()
+	if oracleErr != nil {
+		log.Printf("Warning: Failed to initialize Oracle service: %v", oracleErr)
+		log.Println("Oracle endpoints will return 503. Check MONAD_RPC_URL / QUADRATIC_VOTING_ADDRESS.")
+	}
+	var oracleHandler *handlers.OracleHandler
+	if oracleService != nil {
+		oracleHandler = handlers.NewOracleHandler(oracleService)
+	}
+
 	// Apply rate limiting to all API routes
 	r.Use(middleware.RateLimitMiddleware())
 
@@ -128,6 +139,17 @@ func SetupMainRouter(db *gorm.DB) *gin.Engine {
 				sbt.GET("/leaderboard", sbtHandler.GetLeaderboard)
 				sbt.GET("/stats", sbtHandler.GetSBTStats)
 				sbt.GET("/export", sbtHandler.ExportSBTData)
+			}
+		}
+
+		// Threat Oracle endpoints (public, no auth)
+		if oracleHandler != nil {
+			oracle := api.Group("/oracle")
+			{
+				oracle.GET("/score/:address", oracleHandler.GetThreatScore)
+				oracle.GET("/check/:address", oracleHandler.CheckConfirmedScam)
+				oracle.GET("/confidence/:address", oracleHandler.GetDAOConfidence)
+				oracle.GET("/full/:address", oracleHandler.GetFullOracleReport)
 			}
 		}
 	}
