@@ -1,7 +1,7 @@
 /**
  * Soulbound Token (SBT) Service — Production Implementation
  *
- * Reads/writes CivicSBT contract on Monad testnet.
+ * Reads/writes CivicSBT contract on Sepolia testnet.
  * The SBT permanently encodes on-chain reputation:
  *   +40  Wallet history (do you have real funds on-chain?)
  *   +30  DAO voting accuracy (do you vote correctly?)
@@ -71,7 +71,7 @@ const WALLET_VERIFIER_ADDRESS =
   (addresses as any).walletVerifier ||
   import.meta.env.VITE_WALLET_VERIFIER_ADDRESS ||
   "";
-const MONAD_RPC = "https://testnet-rpc.monad.xyz";
+const MONAD_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
 
 // QuadraticVoting ABI (voter stats only)
 const QV_ABI = [
@@ -81,7 +81,7 @@ const QV_ABI = [
 ];
 const QV_ADDRESS =
   (addresses as any).quadraticVoting ||
-  import.meta.env.VITE_CONTRACT_ADDRESS_MONAD ||
+  import.meta.env.VITE_CONTRACT_ADDRESS_SEPOLIA ||
   "0x0000000000000000000000000000000000000000"; // loaded from addresses.json after deploy
 
 // ════════════════════════════════════════════
@@ -90,7 +90,7 @@ const QV_ADDRESS =
 
 /**
  * Get a provider for READ-ONLY on-chain calls.
- * Always uses the direct Monad RPC — does NOT depend on MetaMask being connected
+ * Always uses the direct Sepolia RPC — does NOT depend on MetaMask being connected
  * or being on the right chain. This ensures trust score reads always work.
  */
 const getReadProvider = (): JsonRpcProvider | null => {
@@ -223,7 +223,7 @@ export const getOnChainTokenURI = async (
       const id = await sbt.getTokenIdForAddress(address);
       tokenId = Number(id);
     } catch {
-      // Fallback: scan SBTMinted events for this address (chunked for Monad's 1000-block limit)
+      // Fallback: scan SBTMinted events for this address (chunked for Sepolia's block limit)
       try {
         const filter = sbt.filters.SBTMinted(address);
         const provider = getReadProvider();

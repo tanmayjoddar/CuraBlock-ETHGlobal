@@ -33,6 +33,8 @@ export const NETWORK_INFO = {
     blockTime: 15,
     isTestnet: true,
     logoUrl: "/ethereum.svg",
+    recommended: true,
+    rpcUrl: "https://ethereum-sepolia-rpc.publicnode.com",
   },
   "10143": {
     name: "Monad",
@@ -42,7 +44,6 @@ export const NETWORK_INFO = {
     blockTime: 2, // Monad has much faster block times
     isTestnet: true,
     logoUrl: "/monad.svg",
-    recommended: true,
     rpcUrl: "https://testnet-rpc.monad.xyz",
   },
   "143": {
@@ -53,25 +54,23 @@ export const NETWORK_INFO = {
     blockTime: 2,
     isTestnet: true,
     logoUrl: "/monad.svg",
-    recommended: true,
     rpcUrl: "https://testnet-rpc.monad.xyz",
   },
 };
 
 /**
- * Check if the current network is Monad
+ * Check if the current network is Sepolia
  * @param {string} chainId - The current chain ID (can be in decimal or hex format)
- * @returns {boolean} True if on Monad network
+ * @returns {boolean} True if on Sepolia network
  */
-export function isMonadNetwork(chainId: string | null | undefined): boolean {
+export function isSepoliaNetwork(chainId: string | null | undefined): boolean {
   if (!chainId) return false;
 
   // Handle both decimal and hex formats
   if (
-    chainId === "10143" ||
-    chainId === "0x279F" ||
-    chainId === "0x279f" ||
-    chainId === "143"
+    chainId === "11155111" ||
+    chainId === "0xAA36A7" ||
+    chainId === "0xaa36a7"
   ) {
     return true;
   }
@@ -79,11 +78,14 @@ export function isMonadNetwork(chainId: string | null | undefined): boolean {
   // Handle the case where it might be a hex string without '0x' prefix
   try {
     const chainIdNum = parseInt(chainId);
-    return chainIdNum === 10143 || chainIdNum === 143;
+    return chainIdNum === 11155111;
   } catch {
     return false;
   }
 }
+
+/** @deprecated Use isSepoliaNetwork instead */
+export const isMonadNetwork = isSepoliaNetwork;
 
 /**
  * Get transaction confirmation threshold based on network
@@ -93,7 +95,7 @@ export function isMonadNetwork(chainId: string | null | undefined): boolean {
 export function getConfirmationThreshold(
   chainId: string | null | undefined,
 ): number {
-  return isMonadNetwork(chainId) ? 1 : 3; // Monad needs fewer confirmations
+  return isSepoliaNetwork(chainId) ? 2 : 3; // Sepolia needs fewer confirmations
 }
 
 /**
@@ -102,7 +104,7 @@ export function getConfirmationThreshold(
  * @returns {number} Polling interval in milliseconds
  */
 export function getTxPollInterval(chainId: string | null | undefined): number {
-  return isMonadNetwork(chainId) ? 500 : 3000; // Poll faster on Monad
+  return isSepoliaNetwork(chainId) ? 2000 : 3000; // Poll on Sepolia
 }
 
 /**

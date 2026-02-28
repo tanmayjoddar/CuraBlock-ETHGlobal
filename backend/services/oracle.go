@@ -83,16 +83,16 @@ type OracleService struct {
 	parsedABI    abi.ABI
 }
 
-// NewOracleService creates a new oracle service connected to Monad testnet.
+// NewOracleService creates a new oracle service connected to Sepolia testnet.
 func NewOracleService() (*OracleService, error) {
 	rpcURL := os.Getenv("MONAD_RPC_URL")
 	if rpcURL == "" {
-		rpcURL = "https://testnet-rpc.monad.xyz"
+		rpcURL = "https://ethereum-sepolia-rpc.publicnode.com"
 	}
 
 	contractAddr := os.Getenv("QUADRATIC_VOTING_ADDRESS")
 	if contractAddr == "" {
-		contractAddr = "0xf237f2e5BfB3a46B8F4397B19F867C99D0BC7941"
+		contractAddr = "0x4d2fCA51bc7D29a0559FcB05BE23C39344C84456"
 	}
 
 	client, err := ethclient.Dial(rpcURL)
@@ -245,7 +245,7 @@ func buildExplanation(report *OracleReport) []string {
 		lines = append(lines, "No threats detected by the DAO oracle")
 	}
 
-	lines = append(lines, "Permanently recorded on Monad testnet")
+	lines = append(lines, "Permanently recorded on Sepolia testnet")
 	return lines
 }
 

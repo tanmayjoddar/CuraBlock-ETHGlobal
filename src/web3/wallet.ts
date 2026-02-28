@@ -9,31 +9,18 @@ import {
   parseUnits,
   Contract,
 } from "ethers";
-import { NETWORK_INFO, isMonadNetwork } from "./utils";
+import { NETWORK_INFO, isSepoliaNetwork } from "./utils";
 import { IMEVProtection, createMEVProtection } from "./mev-protection";
 
 /**
- * Patch a BrowserProvider to force legacy (type 0) transactions.
- * Monad testnet does NOT support EIP-1559 (eth_maxPriorityFeePerGas),
- * so we override getFeeData to return only gasPrice and null out EIP-1559 fields.
+ * Patch a BrowserProvider for legacy (type 0) transactions.
+ * Kept as a no-op for Sepolia since it supports EIP-1559 natively.
+ * If you ever need to force legacy tx type, restore the body.
  */
 export function patchProviderForMonad(
   provider: BrowserProvider,
 ): BrowserProvider {
-  const originalGetFeeData = provider.getFeeData.bind(provider);
-  provider.getFeeData = async () => {
-    try {
-      const fee = await originalGetFeeData();
-      return new ethers.FeeData(
-        fee.gasPrice,
-        null, // maxFeePerGas — disable EIP-1559
-        null, // maxPriorityFeePerGas — disable EIP-1559
-      );
-    } catch {
-      // If even gasPrice fails, use a safe default (50 gwei)
-      return new ethers.FeeData(ethers.parseUnits("50", "gwei"), null, null);
-    }
-  };
+  // Sepolia supports EIP-1559, no patching needed
   return provider;
 }
 
@@ -43,7 +30,7 @@ export function patchProviderForMonad(
  */
 
 /**
- * Switch to Monad testnet
+ * Switch to Sepolia testnet
  * @returns {Promise<boolean>} True if successful
  */
 export const switchToMonadNetwork = async (): Promise<boolean> => {
@@ -52,10 +39,10 @@ export const switchToMonadNetwork = async (): Promise<boolean> => {
     return false;
   }
 
-  const chainId = "0x279F"; // 10143 in hex
+  const chainId = "0xAA36A7"; // 11155111 in hex
 
   try {
-    // Try to switch to Monad testnet
+    // Try to switch to Sepolia testnet
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId }],
@@ -70,24 +57,24 @@ export const switchToMonadNetwork = async (): Promise<boolean> => {
           params: [
             {
               chainId,
-              chainName: "Monad Testnet",
+              chainName: "Sepolia Testnet",
               nativeCurrency: {
-                name: "MON",
-                symbol: "MON",
+                name: "Sepolia ETH",
+                symbol: "ETH",
                 decimals: 18,
               },
-              rpcUrls: ["https://testnet-rpc.monad.xyz"],
-              blockExplorerUrls: ["https://testnet.monadexplorer.com"],
+              rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"],
+              blockExplorerUrls: ["https://sepolia.etherscan.io"],
             },
           ],
         });
         return true;
       } catch (addError) {
-        console.error("Error adding Monad network:", addError);
+        console.error("Error adding Sepolia network:", addError);
         return false;
       }
     } else {
-      console.error("Error switching to Monad network:", error);
+      console.error("Error switching to Sepolia network:", error);
       return false;
     }
   }
@@ -116,10 +103,10 @@ export const connectWallet = async (
       method: "eth_requestAccounts",
     });
 
-    // If preferMonad is true, switch to Monad network after connecting
+    // If preferMonad is true, switch to Sepolia network after connecting
     if (preferMonad) {
       const chainId = await window.ethereum.request({ method: "eth_chainId" });
-      if (!isMonadNetwork(chainId)) {
+      if (!isSepoliaNetwork(chainId)) {
         await switchToMonadNetwork();
       }
     }
@@ -227,10 +214,10 @@ class WalletConnector {
 
       // Get network information
       const network = await this.provider.getNetwork();
-      this.chainId = Number(network.chainId); // Always try to switch to Monad if not already on it
+      this.chainId = Number(network.chainId); // Always try to switch to Sepolia if not already on it
       if (
-        !isMonadNetwork(this.chainId.toString()) &&
-        !isMonadNetwork("0x" + this.chainId.toString(16))
+        !isSepoliaNetwork(this.chainId.toString()) &&
+        !isSepoliaNetwork("0x" + this.chainId.toString(16))
       ) {
         await switchToMonadNetwork();
         // Refresh network info after switch
@@ -238,7 +225,7 @@ class WalletConnector {
         this.chainId = Number(newNetwork.chainId);
       }
 
-      this.networkName = "Monad Testnet"; // Always show as Monad Testnet
+      this.networkName = "Sepolia Testnet"; // Always show as Sepolia Testnet
 
       // Set up event listeners
       this._setupEventListeners();
@@ -377,7 +364,7 @@ class WalletConnector {
     const networkInfo = NETWORK_INFO[chainId.toString()];
     if (networkInfo) {
       // If it's Monad, just return "Monad"
-      if (isMonadNetwork(chainId.toString())) {
+      if (isSepoliaNetwork(chainId.toString())) {
         return networkInfo.name;
       }
       // For other networks, use displayName if available, otherwise use name

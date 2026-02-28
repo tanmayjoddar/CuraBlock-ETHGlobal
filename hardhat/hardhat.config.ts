@@ -6,7 +6,8 @@ dotenv.config();
 
 // Helper to format private key correctly - adds 0x prefix if needed
 function formatPrivateKey(key: string | undefined): string {
-  if (!key) return "0x0000000000000000000000000000000000000000000000000000000000000000";
+  if (!key)
+    return "0x0000000000000000000000000000000000000000000000000000000000000000";
   return key.startsWith("0x") ? key : `0x${key}`;
 }
 
@@ -19,36 +20,42 @@ const MONADSCAN_API_KEY = process.env.MONADSCAN_API_KEY || "";
 
 const config: HardhatUserConfig = {
   solidity: "0.8.28",
-  defaultNetwork: "monad_testnet",
+  defaultNetwork: "sepolia",
   networks: {
+    sepolia: {
+      url: "https://ethereum-sepolia-rpc.publicnode.com",
+      accounts: [PRIVATE_KEY],
+      chainId: 11155111,
+      timeout: 120000, // 2 minute timeout
+    },
     monad_testnet: {
-      url: "https://testnet-rpc.monad.xyz",  // Latest Monad testnet RPC
-      accounts: [PRIVATE_KEY],      chainId: 10143,  // Monad Local testnet chain ID
-      // gasPrice: auto-estimated by the network
-      timeout: 120000 // 2 minute timeout
-    }
+      url: "https://testnet-rpc.monad.xyz", // Legacy Monad testnet RPC
+      accounts: [PRIVATE_KEY],
+      chainId: 10143,
+      timeout: 120000,
+    },
   },
   etherscan: {
     apiKey: {
-      monad_testnet: process.env.MONADSCAN_API_KEY || ""
+      sepolia: process.env.ETHERSCAN_API_KEY || "",
     },
     customChains: [
       {
-        network: "monad_testnet",
-        chainId: 10143,  // Monad Local testnet chain ID
+        network: "sepolia",
+        chainId: 11155111,
         urls: {
-          apiURL: "https://explorer.testnet.monad.xyz/api",
-          browserURL: "https://explorer.testnet.monad.xyz"
-        }
-      }
-    ]
+          apiURL: "https://api-sepolia.etherscan.io/api",
+          browserURL: "https://sepolia.etherscan.io",
+        },
+      },
+    ],
   },
   paths: {
     sources: "./contracts",
     tests: "./test",
     cache: "./cache",
-    artifacts: "./artifacts"
-  }
+    artifacts: "./artifacts",
+  },
 };
 
 export default config;

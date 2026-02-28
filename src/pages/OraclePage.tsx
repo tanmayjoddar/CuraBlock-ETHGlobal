@@ -2,10 +2,10 @@ import React, { useState, useCallback } from "react";
 import { JsonRpcProvider, Contract, isAddress } from "ethers";
 
 // ── Contract config ──
-const RPC_URL = "https://testnet-rpc.monad.xyz";
+const RPC_URL = "https://ethereum-sepolia-rpc.publicnode.com";
 const CONTRACT_ADDRESS =
-  import.meta.env.VITE_CONTRACT_ADDRESS_MONAD ||
-  "0xf237f2e5BfB3a46B8F4397B19F867C99D0BC7941";
+  import.meta.env.VITE_CONTRACT_ADDRESS_SEPOLIA ||
+  "0x0000000000000000000000000000000000000000";
 
 const ORACLE_ABI = [
   "function getThreatScore(address wallet) public view returns (uint256)",
@@ -73,7 +73,7 @@ const CHAINS = [
   { name: "Base", active: false },
   { name: "Polygon", active: false },
   { name: "BNB Chain", active: false },
-  { name: "Monad ✓", active: true },
+  { name: "Sepolia ✓", active: true },
 ];
 
 const OraclePage: React.FC = () => {
@@ -88,7 +88,9 @@ const OraclePage: React.FC = () => {
   const queryOracle = useCallback(async () => {
     const trimmed = address.trim();
     if (!isAddress(trimmed)) {
-      setError("Invalid Ethereum address. Must be 0x followed by 40 hex characters.");
+      setError(
+        "Invalid Ethereum address. Must be 0x followed by 40 hex characters.",
+      );
       return;
     }
 
@@ -128,7 +130,7 @@ const OraclePage: React.FC = () => {
           "Contract returned unexpected data. The contract may not be deployed at this address.",
         );
       } else if (msg.includes("network") || msg.includes("timeout")) {
-        setError("Network error. Monad testnet RPC may be unavailable. Try again.");
+        setError("Network error. Sepolia RPC may be unavailable. Try again.");
       } else {
         setError(`Query failed: ${msg.slice(0, 200)}`);
       }
@@ -172,7 +174,10 @@ const OraclePage: React.FC = () => {
         </header>
 
         {/* ── SECTION 2: Input ── */}
-        <div className="rounded-2xl p-6 sm:p-8 mb-8" style={{ background: "#1E1B4B" }}>
+        <div
+          className="rounded-2xl p-6 sm:p-8 mb-8"
+          style={{ background: "#1E1B4B" }}
+        >
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Wallet Address
           </label>
@@ -193,9 +198,7 @@ const OraclePage: React.FC = () => {
               background: loading
                 ? "#4C1D95"
                 : "linear-gradient(135deg, #7C3AED, #6D28D9)",
-              boxShadow: loading
-                ? "none"
-                : "0 4px 24px rgba(124,58,237,0.4)",
+              boxShadow: loading ? "none" : "0 4px 24px rgba(124,58,237,0.4)",
             }}
           >
             {loading ? "⏳ Querying Blockchain..." : "⚡ Query Threat Oracle"}
@@ -268,12 +271,18 @@ const OraclePage: React.FC = () => {
             <div className="border-t border-purple-900/30">
               <div
                 className="px-6 py-3 text-xs font-bold tracking-widest uppercase"
-                style={{ color: "#A78BFA", background: "rgba(124,58,237,0.08)" }}
+                style={{
+                  color: "#A78BFA",
+                  background: "rgba(124,58,237,0.08)",
+                }}
               >
                 ⚡ Any DeFi Protocol Integrates In 3 Lines:
               </div>
-              <pre className="px-6 py-5 text-sm leading-relaxed overflow-x-auto font-mono" style={{ color: "#60A5FA" }}>
-{`INeuroShield oracle = INeuroShield(CONTRACT_ADDRESS);
+              <pre
+                className="px-6 py-5 text-sm leading-relaxed overflow-x-auto font-mono"
+                style={{ color: "#60A5FA" }}
+              >
+                {`INeuroShield oracle = INeuroShield(CONTRACT_ADDRESS);
 require(
   oracle.getThreatScore(msg.sender) < 70,
   "Blocked: High risk address"
@@ -284,13 +293,13 @@ require(
             {/* 3D — Explorer link */}
             <div className="px-6 py-4 border-t border-purple-900/30 text-center">
               <a
-                href={`https://testnet.monadexplorer.com/address/${CONTRACT_ADDRESS}`}
+                href={`https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm font-medium hover:underline transition-colors"
                 style={{ color: "#A78BFA" }}
               >
-                View contract on Monad Explorer →
+                View contract on Etherscan (Sepolia) →
               </a>
             </div>
           </div>

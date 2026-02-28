@@ -63,11 +63,12 @@ const CONTRACT_ADDRESSES: { [chainId: string]: string } = {
     "0x0000000000000000000000000000000000000000",
   "11155111":
     import.meta.env.VITE_CONTRACT_ADDRESS_SEPOLIA ||
-    "0x0000000000000000000000000000000000000000",
+    (addresses as any).quadraticVoting ||
+    "0x0000000000000000000000000000000000000000", // Sepolia testnet — loaded from addresses.json
   "10143":
     import.meta.env.VITE_CONTRACT_ADDRESS_MONAD ||
     (addresses as any).quadraticVoting ||
-    "0x0000000000000000000000000000000000000000", // Monad testnet — loaded from addresses.json
+    "0x0000000000000000000000000000000000000000", // Monad testnet (legacy)
   // Fallback: some wallets/RPCs may report a different chain ID for Monad testnet
   "143":
     import.meta.env.VITE_CONTRACT_ADDRESS_MONAD ||
@@ -83,7 +84,7 @@ class ContractService extends EventEmitter {
 
   private QUADRATIC_VOTING_ADDRESS =
     (addresses as any).quadraticVoting ||
-    import.meta.env.VITE_CONTRACT_ADDRESS_MONAD ||
+    import.meta.env.VITE_CONTRACT_ADDRESS_SEPOLIA ||
     "0x0000000000000000000000000000000000000000"; // loaded from addresses.json
   private SHIELD_TOKEN_ADDRESS =
     (addresses as any).shieldToken ||
@@ -110,17 +111,16 @@ class ContractService extends EventEmitter {
 
   // Forward contract events to EventEmitter.
   // NOTE: ethers.js contract.on() uses polling eth_getLogs under the hood
-  // which hammers Monad's 25 req/sec rate limit. Disabled to avoid 429 floods.
+  // which can hammer RPC rate limits. Disabled to avoid 429 floods.
   // Events are refreshed via manual fetchData() in components instead.
   private setupEventForwarding() {
-    // Intentionally disabled — Monad testnet rate-limits eth_getLogs polling.
+    // Intentionally disabled — rate-limit protection.
     // Components call fetchData() on user actions instead.
   }
 
   /**
    * Query events with automatic block-range chunking.
-   * Monad testnet limits eth_getLogs to a 100-block range per request
-   * AND rate-limits to 25 requests/sec, so we add a delay between chunks.
+   * Keeps block-range chunking for RPC resilience.
    */
   private async queryFilterChunked(
     filter: any,
@@ -128,8 +128,8 @@ class ContractService extends EventEmitter {
   ): Promise<ethers.EventLog[]> {
     if (!this.votingContract || !walletConnector.provider) return [];
 
-    const CHUNK = 99; // stay under Monad's 100-block limit
-    const DELAY_MS = 120; // ~8 req/sec, well under 25/sec limit
+    const CHUNK = 999; // Sepolia supports larger block ranges
+    const DELAY_MS = 120; // throttle between chunks
     const MAX_RETRIES = 2;
     const latestBlock = await walletConnector.provider.getBlockNumber();
     const startBlock = Math.max(0, latestBlock - maxBlocks);
@@ -549,7 +549,7 @@ class ContractService extends EventEmitter {
       const tx = await walletConnector.signer!.sendTransaction({
         to,
         value: amountWei,
-        type: 0, // Force legacy tx — Monad doesn't support EIP-1559
+        // Sepolia supports EIP-1559 natively
       });
 
       return tx;
@@ -600,8 +600,6 @@ class ContractService extends EventEmitter {
     }
     const feeData = await walletConnector.provider?.getFeeData();
     return shield.approve(this.QUADRATIC_VOTING_ADDRESS, amount, {
-      type: 0,
-      gasPrice: feeData?.gasPrice,
       gasLimit: 100000n,
     });
   }
@@ -696,8 +694,6 @@ class ContractService extends EventEmitter {
     const { voting } = await this.getSignerContract();
     const feeData = await walletConnector.provider?.getFeeData();
     return voting.castVote(proposalId, support, tokens, {
-      type: 0,
-      gasPrice: feeData?.gasPrice,
       gasLimit: 500000n,
     });
   }
@@ -759,8 +755,8 @@ class ContractService extends EventEmitter {
       const network = await walletConnector.provider?.getNetwork();
       const chainId = Number(network?.chainId || 0);
 
-      if (chainId !== 10143 && chainId !== 143) {
-        throw new Error("Please switch to Monad network (chain ID 10143)");
+      if (chainId !== 11155111) {
+        throw new Error("Please switch to Sepolia network (chain ID 11155111)");
       }
 
       console.log("Network info:", {
@@ -818,8 +814,7 @@ class ContractService extends EventEmitter {
         evidence,
         {
           gasLimit: (gasEstimate * 120n) / 100n, // Add 20% buffer
-          gasPrice: feeData?.gasPrice,
-          type: 0, // Force legacy tx — Monad doesn't support EIP-1559
+          // Sepolia supports EIP-1559 natively
         },
       );
 
@@ -1095,7 +1090,7 @@ async function resolveAddressOrENS(
 
     // Immediately return for non-ENS networks to avoid unnecessary ENS calls
     if (chainId === 10143) {
-      throw new Error("Only valid addresses are supported on this network");
+      throw new Error("Only valid addresses are supported on Monad network");
     }
 
     // Only attempt ENS resolution on supported networks

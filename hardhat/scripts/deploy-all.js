@@ -14,7 +14,7 @@
  * Automatically updates src/web3/addresses.json and prints .env snippet.
  *
  * Usage:
- *   npx hardhat run scripts/deploy-all.js --network monad_testnet
+ *   npx hardhat run scripts/deploy-all.js --network sepolia
  */
 
 const { ethers } = require("hardhat");
@@ -28,11 +28,11 @@ async function main() {
   console.log("📍 Deployer:", deployer.address);
 
   const balance = await ethers.provider.getBalance(deployer.address);
-  console.log("💰 Balance:", ethers.formatEther(balance), "MON\n");
+  console.log("💰 Balance:", ethers.formatEther(balance), "ETH\n");
 
   if (balance === 0n) {
     console.log(
-      "❌ No MON tokens! Get some from https://faucet.testnet.monad.xyz/",
+      "❌ No ETH! Get some from https://sepoliafaucet.com/ or https://faucets.chain.link/sepolia",
     );
     process.exit(1);
   }
@@ -60,19 +60,9 @@ async function main() {
   console.log("   ✅", deployed.quadraticVoting);
 
   // ──────────────────────────────────────────────────
-  // 3. MockCivicPass
+  // 3. CivicSBT
   // ──────────────────────────────────────────────────
-  console.log("3️⃣  Deploying MockCivicPass...");
-  const MockCivicPass = await ethers.getContractFactory("MockCivicPass");
-  const mockCivicPass = await MockCivicPass.deploy();
-  await mockCivicPass.waitForDeployment();
-  deployed.mockCivicPass = await mockCivicPass.getAddress();
-  console.log("   ✅", deployed.mockCivicPass);
-
-  // ──────────────────────────────────────────────────
-  // 4. CivicSBT
-  // ──────────────────────────────────────────────────
-  console.log("4️⃣  Deploying CivicSBT...");
+  console.log("3️⃣  Deploying CivicSBT...");
   const CivicSBT = await ethers.getContractFactory("CivicSBT");
   const civicSBT = await CivicSBT.deploy();
   await civicSBT.waitForDeployment();
@@ -80,34 +70,34 @@ async function main() {
   console.log("   ✅", deployed.civicSBT);
 
   // ──────────────────────────────────────────────────
-  // 5. CivicVerifier
+  // 4. WalletVerifier (replaces MockCivicPass + CivicVerifier)
   // ──────────────────────────────────────────────────
-  console.log("5️⃣  Deploying CivicVerifier...");
-  const CivicVerifier = await ethers.getContractFactory("CivicVerifier");
-  const civicVerifier = await CivicVerifier.deploy(
-    deployed.mockCivicPass,
+  console.log("4️⃣  Deploying WalletVerifier...");
+  const WalletVerifier = await ethers.getContractFactory("WalletVerifier");
+  const walletVerifier = await WalletVerifier.deploy(
     deployed.civicSBT,
+    deployed.quadraticVoting,
   );
-  await civicVerifier.waitForDeployment();
-  deployed.civicVerifier = await civicVerifier.getAddress();
-  console.log("   ✅", deployed.civicVerifier);
+  await walletVerifier.waitForDeployment();
+  deployed.walletVerifier = await walletVerifier.getAddress();
+  console.log("   ✅", deployed.walletVerifier);
 
-  // Authorize CivicVerifier as SBT updater
-  console.log("   🔗 Authorizing CivicVerifier as SBT updater...");
+  // Authorize WalletVerifier as SBT updater
+  console.log("   🔗 Authorizing WalletVerifier as SBT updater...");
   const addUpdaterTx = await civicSBT.addAuthorizedUpdater(
-    deployed.civicVerifier,
+    deployed.walletVerifier,
   );
   await addUpdaterTx.wait();
   console.log("   ✅ Authorized");
 
   // ──────────────────────────────────────────────────
-  // 6. CivicGatedWallet
+  // 5. CivicGatedWallet
   // ──────────────────────────────────────────────────
-  console.log("6️⃣  Deploying CivicGatedWallet...");
+  console.log("5️⃣  Deploying CivicGatedWallet...");
   const threshold = ethers.parseEther("1.0");
   const CivicGatedWallet = await ethers.getContractFactory("CivicGatedWallet");
   const civicGatedWallet = await CivicGatedWallet.deploy(
-    deployed.civicVerifier,
+    deployed.walletVerifier,
     threshold,
   );
   await civicGatedWallet.waitForDeployment();
@@ -133,10 +123,10 @@ async function main() {
   console.log("═══════════════════════════════════════════════════════");
 
   console.log("\n📋 Add to your root .env:");
-  console.log(`VITE_CONTRACT_ADDRESS_MONAD=${deployed.quadraticVoting}`);
+  console.log(`VITE_CONTRACT_ADDRESS_SEPOLIA=${deployed.quadraticVoting}`);
   console.log(`VITE_SHIELD_TOKEN_ADDRESS=${deployed.shieldToken}`);
   console.log(`VITE_CIVIC_SBT_ADDRESS=${deployed.civicSBT}`);
-  console.log(`VITE_CIVIC_VERIFIER_ADDRESS=${deployed.civicVerifier}`);
+  console.log(`VITE_WALLET_VERIFIER_ADDRESS=${deployed.walletVerifier}`);
 
   console.log("\n⚠️  NEXT STEPS:");
   console.log("   1. Copy the .env lines above into your root .env file");
@@ -144,10 +134,10 @@ async function main() {
     "   2. Update QUADRATIC_VOTING_ADDRESS in scripts/demo-setup.js and demo-execute.js",
   );
   console.log(
-    "   3. Run: npx hardhat run scripts/demo-setup.js --network monad_testnet",
+    "   3. Run: npx hardhat run scripts/demo-setup.js --network sepolia",
   );
   console.log(
-    "   4. Wait 1 hour, then run: npx hardhat run scripts/demo-execute.js --network monad_testnet",
+    "   4. Wait 1 hour, then run: npx hardhat run scripts/demo-execute.js --network sepolia",
   );
 }
 

@@ -49,7 +49,7 @@ const civicVerifierABIJSON = `[
 func NewSBTService(db *gorm.DB) (*SBTService, error) {
 	rpcURL := os.Getenv("MONAD_RPC_URL")
 	if rpcURL == "" {
-		rpcURL = "https://testnet-rpc.monad.xyz"
+		rpcURL = "https://ethereum-sepolia-rpc.publicnode.com"
 	}
 
 	sbtAddr := os.Getenv("CIVIC_SBT_ADDRESS")

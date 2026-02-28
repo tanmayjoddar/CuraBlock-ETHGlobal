@@ -14,7 +14,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const MONAD_RPC = "https://testnet-rpc.monad.xyz";
+const MONAD_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
 const getReadProvider = () => new JsonRpcProvider(MONAD_RPC);
 
 // ------- Types -------
@@ -755,7 +755,7 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
               }}
             />
             <span style={{ fontSize: 12, fontWeight: 500 }}>
-              Network: Monad Testnet
+              Network: Sepolia Testnet
             </span>
           </div>
         </div>

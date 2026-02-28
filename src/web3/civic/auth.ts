@@ -64,25 +64,25 @@ const QUADRATIC_VOTING_ABI = [
   "function getVoterStats(address voter) view returns (uint256 accuracy, uint256 participation)",
 ];
 
-// Contract addresses (loaded from env or defaults for Monad testnet)
+// Contract addresses (loaded from env or defaults for Sepolia testnet)
 const WALLET_VERIFIER_ADDRESS =
   (addresses as any).walletVerifier ||
   import.meta.env.VITE_WALLET_VERIFIER_ADDRESS ||
   "";
 const QUADRATIC_VOTING_ADDRESS =
   (addresses as any).quadraticVoting ||
-  import.meta.env.VITE_CONTRACT_ADDRESS_MONAD ||
+  import.meta.env.VITE_CONTRACT_ADDRESS_SEPOLIA ||
   "0x0000000000000000000000000000000000000000";
 
 // ════════════════════════════════════════════
 // HELPER: Get contract instances
 // ════════════════════════════════════════════
 
-const MONAD_RPC = "https://testnet-rpc.monad.xyz";
+const MONAD_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
 
 /**
  * Get a provider for READ-ONLY on-chain calls.
- * Always uses direct Monad RPC — does NOT depend on MetaMask.
+ * Always uses direct Sepolia RPC — does NOT depend on MetaMask.
  */
 const getProvider = () => {
   try {

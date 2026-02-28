@@ -147,19 +147,23 @@ const runMlScamDetection = async (
 
     const result = await response.json();
 
-    // Parse ML API response
+    // Show raw confidence. Safety is determined by prediction, not score.
     const prediction = result.prediction || result.Prediction || "Unknown";
-    let riskScore: number;
+    const rawConf =
+      parseFloat(String(result.confidence ?? "50").replace("%", "")) / 100;
+    const mlTypeLabel = String(result.type ?? result.Type ?? "")
+      .split(" - ")[0]
+      .trim();
+    let riskScore: number = Math.round(rawConf * 100);
+    const isSafe = prediction !== "Fraud";
     const warnings: string[] = [];
 
     if (prediction === "Fraud") {
-      riskScore = 85;
       warnings.push("ML model detected fraudulent transaction pattern");
-    } else if (prediction === "Suspicious") {
-      riskScore = 50;
-      warnings.push("ML model flagged suspicious activity");
-    } else {
-      riskScore = 10;
+    } else if (mlTypeLabel.toLowerCase().includes("unsafe")) {
+      warnings.push(
+        `ML flagged: ${mlTypeLabel} (${result.confidence ?? "N/A"} confidence)`,
+      );
     }
 
     // Adjust for high-value transactions
@@ -170,7 +174,7 @@ const runMlScamDetection = async (
     }
 
     return {
-      isSafe: riskScore < 30,
+      isSafe,
       riskScore,
       prediction,
       warnings,
