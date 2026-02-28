@@ -318,7 +318,11 @@ const TransactionInterceptor: React.FC<TransactionInterceptorProps> = ({
             risk_score: rawConf, // show raw confidence (80% → 80%)
             risk_level:
               prediction === "Fraud"
-                ? (rawConf >= 0.7 ? "HIGH" : rawConf >= 0.4 ? "MEDIUM" : "LOW")
+                ? rawConf >= 0.7
+                  ? "HIGH"
+                  : rawConf >= 0.4
+                    ? "MEDIUM"
+                    : "LOW"
                 : "LOW", // Non-Fraud = safe
             type: mlTypeRaw,
             typeLabel: mlTypeLabel,
@@ -655,9 +659,14 @@ const TransactionInterceptor: React.FC<TransactionInterceptorProps> = ({
 
   const riskScore = combinedScore;
   // Color/level based on prediction: Non-Fraud = Low (green), Fraud = threshold-based
-  const riskLevel = mlIsSafe && !daoData?.isScammer
-    ? "Low"
-    : riskScore >= 70 ? "High" : riskScore >= 40 ? "Medium" : "Low";
+  const riskLevel =
+    mlIsSafe && !daoData?.isScammer
+      ? "Low"
+      : riskScore >= 70
+        ? "High"
+        : riskScore >= 40
+          ? "Medium"
+          : "Low";
 
   // UI + logging should be consistent and respect whitelist.
   // If recipient is trusted, we still show the raw ML output, but we do not block or label it as high risk.
@@ -958,6 +967,58 @@ const TransactionInterceptor: React.FC<TransactionInterceptorProps> = ({
               </div>
             </div>
           )}
+          {/* ML Insights — parsed from the type field */}
+          {(() => {
+            const typeStr = String(
+              mlRawResponse?.type ?? mlRawResponse?.Type ?? "",
+            );
+            // Extract bullet points (lines starting with "- ")
+            const bullets = typeStr
+              .split("\n")
+              .filter((l: string) => l.trim().startsWith("- "))
+              .map((l: string) => l.trim().replace(/^-\s*/, ""));
+            // Extract "Final Assessment: ..."
+            const assessmentMatch = typeStr.match(/Final Assessment:\s*(.+)/i);
+            const assessment = assessmentMatch
+              ? assessmentMatch[1].trim()
+              : null;
+
+            if (bullets.length === 0 && !assessment) return null;
+
+            return (
+              <div className="space-y-3">
+                <h3 className="text-white font-semibold flex items-center space-x-2">
+                  <Brain className="h-5 w-5 text-cyan-400" />
+                  <span>ML Risk Insights</span>
+                </h3>
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10 space-y-3">
+                  {bullets.length > 0 && (
+                    <ul className="space-y-2">
+                      {bullets.map((b: string, i: number) => (
+                        <li
+                          key={i}
+                          className="flex items-start space-x-2 text-sm text-gray-300"
+                        >
+                          <span className="text-yellow-400 mt-0.5">⚡</span>
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {assessment && (
+                    <div className="flex items-center space-x-2 pt-2 border-t border-white/10">
+                      <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wide">
+                        Final Assessment:
+                      </span>
+                      <Badge className="bg-cyan-500/20 text-cyan-300">
+                        {assessment}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
           {/* External ML raw output (debug) */}
           <details className="bg-white/5 rounded-lg p-4 border border-white/10">
             <summary className="text-sm text-gray-300 cursor-pointer select-none">
