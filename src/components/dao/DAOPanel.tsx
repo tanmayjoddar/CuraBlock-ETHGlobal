@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import QuadraticVoteInput from "../QuadraticVoteInput";
 import { useToast } from "@/hooks/use-toast";
 import { type ToastActionElement } from "@/components/ui/toast";
+import { ethers } from "ethers";
 import contractService from "@/web3/contract";
 import walletConnector from "@/web3/wallet";
 import { shortenAddress } from "@/web3/utils";
@@ -195,10 +196,13 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
         [proposalId]: isApprove ? "approve" : "reject",
       }));
 
+      // Convert human-readable token amount to wei (18 decimals)
+      const tokensWei = ethers.parseEther(tokens).toString();
+
       // Approve tokens if needed
-      const needsApproval = await contractService.needsShieldApproval(tokens);
+      const needsApproval = await contractService.needsShieldApproval(tokensWei);
       if (needsApproval) {
-        const approveTx = await contractService.approveShield(tokens);
+        const approveTx = await contractService.approveShield(tokensWei);
         await approveTx.wait();
       }
 
@@ -206,7 +210,7 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
       const tx = await contractService.castQuadraticVote(
         proposalId.toString(),
         isApprove,
-        tokens,
+        tokensWei,
       );
 
       await tx.wait();
@@ -454,13 +458,13 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
                     <div className="flex items-center space-x-2">
                       <ThumbsUp className="h-4 w-4 text-green-500" />
                       <span className="text-white">
-                        {Number(proposal.votesFor).toLocaleString()} Power
+                        {(Number(proposal.votesFor) / 1e9).toFixed(2)} Power
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <ThumbsDown className="h-4 w-4 text-red-500" />
                       <span className="text-white">
-                        {Number(proposal.votesAgainst).toLocaleString()} Power
+                        {(Number(proposal.votesAgainst) / 1e9).toFixed(2)} Power
                       </span>
                     </div>
                   </div>
