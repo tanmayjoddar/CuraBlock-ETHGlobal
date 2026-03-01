@@ -37,7 +37,9 @@ const SimpleCivicAuth: React.FC<SimpleCivicAuthProps> = ({
 
     try {
       // Check backend for existing verified session
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
+      const API_BASE =
+        import.meta.env.VITE_API_URL ||
+        "https://curablock-ethglobal.onrender.com";
       const res = await fetch(
         `${API_BASE}/api/auth/civic/status?userAddress=${walletAddress}`,
       );
@@ -69,7 +71,9 @@ const SimpleCivicAuth: React.FC<SimpleCivicAuthProps> = ({
 
     try {
       setIsLoading(true);
-      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
+      const API_BASE =
+        import.meta.env.VITE_API_URL ||
+        "https://curablock-ethglobal.onrender.com";
 
       // Step 1: Initiate Civic auth session via backend
       const deviceInfo = `${navigator.userAgent}|${navigator.language}|${screen.width}x${screen.height}`;
