@@ -1,4 +1,4 @@
-# NeuroShield — Diversion Demo Script
+# CuraBlock — Diversion Demo Script
 
 **Total Time: 7 minutes**
 **Hackathon: Diversion**
@@ -11,7 +11,7 @@ _(Ronin Bridge exploiter — $625 million stolen March 2022. Publicly documented
 
 ## WHAT WE BUILT — IN ONE BREATH
 
-> NeuroShield is the **world's first self-improving crypto security firewall** — where an AI model, a community DAO, and an on-chain identity system form a closed feedback loop. Every scam the community confirms makes the AI more accurate. Every correct vote improves your permanent on-chain reputation. No engineer touches any of it. It upgrades itself.
+> CuraBlock is the **world's first self-improving crypto security firewall** — where an AI model, a community DAO, and an on-chain identity system form a closed feedback loop. Every scam the community confirms makes the AI more accurate. Every correct vote improves your permanent on-chain reputation. No engineer touches any of it. It upgrades itself.
 
 ---
 
@@ -26,11 +26,11 @@ Every other Web3 security tool is **one trick**:
 | Chainalysis       | Enterprise API    | $50k/yr, no DAO, no composability          |
 | Scamsniffer       | Browser extension | No on-chain identity, no governance        |
 
-**NeuroShield is different in three ways nobody else has combined:**
+**CuraBlock is different in three ways nobody else has combined:**
 
 1. **The AI learns from the community — automatically.** When the DAO confirms an address as a scam, an on-chain `ProposalExecuted` event fires, the Go backend goroutine catches it, writes to PostgreSQL `confirmed_scams`, and every future ML call for that address gets a mandatory risk boost. Zero engineers involved.
 
-2. **Your reputation is on-chain — computed by the chain itself.** The `WalletVerifier` smart contract reads your MON balance and your DAO voting history directly from the blockchain, computes a trust score in `computeTrustScore()`, and mints it into a Soulbound Token. No server. No API. No admin. The score IS the chain state.
+2. **Your reputation is on-chain — computed by the chain itself.** The `WalletVerifier` smart contract reads your ETH balance and your DAO voting history directly from the blockchain, computes a trust score in `computeTrustScore()`, and mints it into a Soulbound Token. No server. No API. No admin. The score IS the chain state.
 
 3. **Quadratic voting makes governance fair.** A whale with 10,000 SHIELD tokens gets only √10,000 = 100 votes. A group of 100 users with 100 tokens each gets 100 × √100 = 1,000 votes. Regular users can outvote whales. Nobody else does this in Web3 security.
 
@@ -42,7 +42,7 @@ Every other Web3 security tool is **one trick**:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         NEUROSHIELD — SYSTEM DESIGN                         │
+│                          CURABLOCK — SYSTEM DESIGN                          │
 │                                                                             │
 │   USER LAYER                                                                │
 │   ┌────────────────────────────────────────────────────────────────────┐   │
@@ -53,31 +53,31 @@ Every other Web3 security tool is **one trick**:
 │                          ▼                         ▼                        │
 │   BLOCKCHAIN LAYER                      BACKEND LAYER                       │
 │   ┌─────────────────┐              ┌──────────────────────────────┐        │
-│   │ Monad Testnet   │              │ Go + Gin API (port 8080)     │        │
-│   │ Chain ID: 10143 │              │ • /api/firewall/tx           │        │
-│   │ ~1s finality    │              │ • /api/dao/proposals         │        │
-│   │ Gas < 0.001 MON │              │ • /api/analytics/:addr       │        │
+│   │ Sepolia Testnet │              │ Go + Gin API (port 8080)     │        │
+│   │ Chain ID: 11155 │              │ • /api/firewall/tx           │        │
+│   │  111            │              │ • /api/dao/proposals         │        │
+│   │ Gas < 0.001 ETH │              │ • /api/analytics/:addr       │        │
 │   │                 │              └────────────┬─────────────────┘        │
 │   │ ┌─────────────┐ │                           │ SQL queries              │
 │   │ │WalletVerif. │ │◀── computeTrustScore()    ▼                          │
-│   │ │  0x78d8Ff…  │ │    (reads balance +   ┌────────────────────┐        │
-│   │ │  40/30/30   │ │     DAO history)       │ PostgreSQL         │        │
+│   │ │  0xe73f31…  │ │    (reads balance +   ┌────────────────────┐        │
+│   │ │  40/30/30   │ │     DAO history)       │ PostgreSQL (Neon)  │        │
 │   │ └─────────────┘ │                        │ • transactions     │        │
 │   │ ┌─────────────┐ │  ProposalExecuted ───▶ │ • confirmed_scams  │        │
 │   │ │ CivicSBT    │ │  ┌──────────────────┐  │ • dao_proposals    │        │
-│   │ │  0xc5A1E1…  │ │  │EventListener(Go) │  └────────────────────┘        │
+│   │ │  0xD820d3…  │ │  │EventListener(Go) │  └────────────────────┘        │
 │   │ └─────────────┘ │  │goroutine / WS    │                                │
-│   │ ┌─────────────┐ │  │Monad→Postgres    │  ML API LAYER                  │
+│   │ ┌─────────────┐ │  │Sepolia→Postgres  │  ML API LAYER                  │
 │   │ │QuadraticDAO │◀┼──│fires on execute  │  ┌──────────────────────────┐  │
-│   │ │  0xC9755c…  │ │  └──────────────────┘  │ Render (external)        │  │
+│   │ │  0x810DA3…  │ │  └──────────────────┘  │ Render (external)        │  │
 │   │ └─────────────┘ │                        │ POST /predict             │  │
 │   │ ┌─────────────┐ │                        │ 18-feature scikit-learn   │  │
 │   │ │ShieldToken  │ │  Vite /ml-api proxy ──▶│ [3]=sent_tnx             │  │
-│   │ │  0xD1a5dD…  │ │  (browser→Vite       │ [8]=avg_val_sent          │  │
+│   │ │  0x486650…  │ │  (browser→Vite       │ [8]=avg_val_sent          │  │
 │   │ └─────────────┘ │   →Render, no CORS)   │ [10]=total_ether_balance  │  │
 │   │ ┌─────────────┐ │                        │ [16/17]=token_type (str)  │  │
-│   │ │SocialRecov. │ │                        └──────────────────────────┘  │
-│   │ │  0x6d51b6…  │ │                                                       │
+│   │ │CivicGated   │ │                        └──────────────────────────┘  │
+│   │ │  0x233015…  │ │                                                       │
 │   │ └─────────────┘ │                                                       │
 │   └─────────────────┘                                                       │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -132,14 +132,13 @@ Every other Web3 security tool is **one trick**:
 
 | Contract             | Address                                      | Purpose                               |
 | -------------------- | -------------------------------------------- | ------------------------------------- |
-| WalletVerifier       | `0x78d8Ff95a4C4dc864AAD94932A39CcB4AcBDdD30` | On-chain trust score (40/30/30)       |
-| CivicSBT             | `0xc5A1E1E6324Dff8dE996510C8CBc4AdE0D47ADcB` | Soulbound Token minting & metadata    |
-| QuadraticVoting      | `0xC9755c1Be2c467c17679CeB5d379eF853641D846` | DAO scam proposals + √(SHIELD) voting |
-| ShieldToken          | `0xD1a5dD85366D8957E3f1917c4bFe7BDBA113FE0d` | ERC-20 governance token               |
-| CivicGatedWallet     | `0xC33c15c33fA18CA7Bc03F4FF5630E9d00727cC34` | High-value tx identity gating         |
-| SocialRecoveryWallet | `0x6d51b690b3b10196A07D3Bdc042296825006EfBA` | Guardian-based key recovery           |
+| QuadraticVoting      | `0x810DA31a1eFB767652b2f969972d2A612AfdEc5C` | DAO scam proposals + √(SHIELD) voting |
+| ShieldToken          | `0x4866507F82F870beD552884F700C54D8A6Dcb061` | ERC-20 governance token               |
+| CivicSBT             | `0xD820d3594b71E3a40c97Fdb89EaF06aDBBaB0D8E` | Soulbound Token minting & metadata    |
+| WalletVerifier       | `0xe73f31f7D784b29a8625c056510A8E9352E3a95b` | On-chain trust score (40/30/30)       |
+| CivicGatedWallet     | `0x233015A64Cb5c209bf3E1BB52db4338BEf1BfBB7` | High-value tx identity gating         |
 
-**Network:** Monad Testnet | **Chain ID:** 10143 | **RPC:** `https://testnet-rpc.monad.xyz`
+**Network:** Sepolia Testnet | **Chain ID:** 11155111 | **RPC:** `https://ethereum-sepolia-rpc.publicnode.com`
 
 _All contracts verified live via `eth_getCode` — full bytecode deployed, not mocks._
 
@@ -154,13 +153,16 @@ Do this **the night before** or **at least 1 hour before** your demo. No excepti
 From the `hardhat/` directory:
 
 ```bash
+# Step 0 — Distribute SHIELD tokens to demo wallet (if not already done)
+npx hardhat run scripts/distribute-shield.js --network sepolia
+
 # Step 1 — reports the Ronin address, casts vote, sets voting period to 1 hour
-npx hardhat run scripts/demo-setup.js --network monadTestnet
+npx hardhat run scripts/demo-setup.js --network sepolia
 
 # Step 2 — wait exactly 1 hour (voting period)
 
 # Step 3 — executes the proposal; sets isScammer = true on-chain
-npx hardhat run scripts/demo-execute.js --network monadTestnet
+npx hardhat run scripts/demo-execute.js --network sepolia
 ```
 
 After `demo-execute.js`, `isScammer("0x098B716B...")` returns `true` on-chain.
@@ -169,8 +171,9 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 ### 10 Minutes Before Stage
 
 - [ ] Chrome at `localhost:5173` — dashboard visible, wallet **NOT** connected
-- [ ] MetaMask: Monad Testnet (Chain ID 10143), deployer wallet with MON for gas
-- [ ] Second tab: Monad Explorer → QuadraticVoting contract `0xC9755c1Be2c467c17679CeB5d379eF853641D846`
+- [ ] MetaMask: **Sepolia Testnet** (Chain ID 11155111), deployer wallet with Sepolia ETH for gas
+- [ ] Second tab: Sepolia Etherscan → QuadraticVoting contract `0x810DA31a1eFB767652b2f969972d2A612AfdEc5C`
+- [ ] Verify your wallet has SHIELD tokens (run `distribute-shield.js` if 0)
 - [ ] DevTools Console pinned to bottom 3 rows — contract call logs auto-fill as you click
 - [ ] Copy to clipboard: `0x098B716B8Aaf21512996dC57EB0615e2383E2f96`
 - [ ] `localStorage.clear()` in DevTools — fresh state, no stale scans
@@ -218,7 +221,7 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 
 **SAY:**
 
-> "I connect my wallet on Monad Testnet. Sub-second blocks, EVM-compatible, gas costs under a penny."
+> "I connect my wallet on Sepolia Testnet. The app auto-switches MetaMask to the right chain — no manual network config needed."
 
 [Wait for connection — green status appears]
 
@@ -230,7 +233,7 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 
 [PAUSE — 1 second]
 
-> "Every user on NeuroShield gets one of these."
+> "Every user on CuraBlock gets one of these."
 
 [POINT AT the SBT card header: "Permanent on-chain reputation — impossible to transfer, impossible to fake"]
 
@@ -244,7 +247,7 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 
 [POINT AT the three colored breakdown bars, one by one — go slow]
 
-> "First bar — **Wallet History**. Forty points. The contract reads your actual MON balance right now, on-chain. More than five MON? Full forty. Just arrived with dust? Nearly zero. This is not a profile field you fill in — it's your wallet's real financial footprint, read by the contract at mint time."
+> "First bar — **Wallet History**. Forty points. The contract reads your actual ETH balance right now, on-chain. More than five ETH? Full forty. Just arrived with dust? Nearly zero. This is not a profile field you fill in — it's your wallet's real financial footprint, read by the contract at mint time."
 
 > "Second bar — **DAO Voting Accuracy**. Thirty points. When you vote on scam reports, were you right? The contract queries the QuadraticVoting contract's `voterAccuracy()` function — which tracks your correct votes versus total votes. Get it wrong? This drops. You can't fake accuracy."
 
@@ -253,6 +256,11 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 [PAUSE — this is the key line]
 
 > "One hundred points. Three dimensions. Zero human input. The WalletVerifier contract reads your balance and your DAO track record, computes the score in a single `computeTrustScore()` call, and writes it into your SBT. **The entire reputation is computed on-chain, from on-chain data, by on-chain code.** There is no backend. There is no API. There is no admin."
+
+> **IMPORTANT — SBT Trust Score vs Security Score:**
+> The SBT Trust Score (/100) is your **on-chain identity reputation** — Wallet History (40), DAO Voting Accuracy (30), DAO Participation (30). It tells judges **who you are**.
+> The Security Score on the Overview tab is a **real-time address risk assessment** — ML model + DAO boost. It tells you **how dangerous an address is**.
+> These are two separate on-chain data pipelines. Don't confuse them.
 
 [CLICK "View Raw On-Chain Token URI" → show the Base64 string expanding]
 
@@ -270,24 +278,16 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 
 > "That's what soulbound means. Your identity is permanent. Your reputation is earned. And no one can take it away."
 
-[ACTION: Hit F12 / Ctrl+Shift+J to open DevTools Console — 20 seconds max]
+[Close DevTools if opened — move on. Don't linger.]
 
-> "I'm going to open DevTools right now."
-
-[POINT AT the Console tab — log lines are already there from the SBT load]
-
-> "Every number you see on that card — Trust Score, Voting Accuracy, DAO Votes — has a corresponding `eth_call` logged right here with the contract address and the return value. See this line? `getTokenMetadata` — that's the contract read that produced the trust score circle. You can take that contract address, go to Monad Explorer right now, and verify every single number independently. That's what trustless actually means."
-
-[Close DevTools — move on. Don't linger.]
-
-**SHOW:** SBT tab — trust score circle animating, three colored bars with values (Wallet History /40, DAO Voting Accuracy /30, DAO Participation /30), "View Raw On-Chain Token URI" expanded showing Base64 string. DevTools Console briefly visible showing `[SBT] eth_call computeTrustScore(...)`, `[SBT] eth_call tokenURI(...)` log lines with contract address `0x78d8Ff95a4C4dc864AAD94932A39CcB4AcBDdD30`.
+**SHOW:** SBT tab — trust score circle animating, three colored bars with values (Wallet History /40, DAO Voting Accuracy /30, DAO Participation /30), "View Raw On-Chain Token URI" expanded showing Base64 string. DevTools Console briefly visible showing `[SBT] eth_call computeTrustScore(...)`, `[SBT] eth_call tokenURI(...)` log lines with contract address `0xe73f31f7D784b29a8625c056510A8E9352E3a95b`.
 
 **WHY IT LANDS:** Four stacking punches:
 
 1. "Cannot be transferred" — judges immediately understand this is not a regular NFT
 2. **Three bars, zero human input** — the WalletVerifier contract reads your balance and DAO track record from the blockchain itself. No oracle. No API. No admin dashboard. The score IS the chain state. This is the mind-boggling moment — judges realize no one can manipulate this score because no one inputs it.
 3. The raw Base64 blob — proof, not a claim. The metadata is stored inside the contract. If every server on earth goes offline, your reputation still exists. Most NFTs use IPFS URIs that break. This never breaks.
-4. DevTools Console — the "Verifiable UI" moment. Every number on screen has a matching `eth_call` log with the contract address and return value. Cross-reference on Monad Explorer. This cannot be faked.
+4. DevTools Console — the "Verifiable UI" moment. Every number on screen has a matching `eth_call` log with the contract address and return value. Cross-reference on Sepolia Etherscan. This cannot be faked.
 
 ---
 
@@ -302,7 +302,7 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 
 > "This is the core feature. Every outgoing transaction passes through our ML fraud detection before your wallet signs anything."
 
-**ACTION:** Paste `0x098B716B8Aaf21512996dC57EB0615e2383E2f96` into the recipient field. Enter `0.0001` MON.
+**ACTION:** Paste `0x098B716B8Aaf21512996dC57EB0615e2383E2f96` into the recipient field. Enter `0.0001` ETH.
 
 > "I'm about to send to this address. You might recognize it — this is the Ronin Bridge exploiter. Six hundred twenty-five million dollars, March 2022."
 
@@ -343,19 +343,19 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 
 **SAY:**
 
-> "I know this address is dangerous. Most security tools would say 'noted, we'll update the list eventually.' NeuroShield says — **let the community decide, permanently, on-chain.**"
+> "I know this address is dangerous. Most security tools would say 'noted, we'll update the list eventually.' CuraBlock says — **let the community decide, permanently, on-chain.**"
 
 **ACTION:** Paste `0x098B716B8Aaf21512996dC57EB0615e2383E2f96`. Enter reason: _"Ronin Bridge exploiter — $625M stolen March 2022"_. Click **Submit Report**.
 
 [MetaMask popup appears]
 
-> "Look at this carefully. This is a real blockchain transaction calling `submitProposal()` on our QuadraticVoting contract at `0xC9755c1Be2c467c17679CeB5d379eF853641D846` on Monad Testnet. Not a mock. Not a simulation."
+> "Look at this carefully. This is a real blockchain transaction calling `submitProposal()` on our QuadraticVoting contract at `0x810DA31a1eFB767652b2f969972d2A612AfdEc5C` on Sepolia. Not a mock. Not a simulation."
 
 **ACTION:** Click **Confirm** in MetaMask.
 
 [~1 second — tx confirmed]
 
-> "Under a second. Fraction of a penny in gas. That report now lives on-chain permanently. Take the tx hash to Monad Explorer right now and verify it."
+> "Under a second. Fraction of a penny in gas. That report now lives on-chain permanently. Take the tx hash to Sepolia Etherscan right now and verify it."
 
 [PAUSE — pre-empt the obvious objection:]
 
@@ -377,7 +377,9 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 
 [POINT AT the DAO header stats — SHIELD balance, Votes Cast, Voting Accuracy]
 
-> "Look at the top. My SHIELD token balance, my votes cast, my voting accuracy — all zero right now. Watch these change."
+> "Look at the top. My SHIELD token balance — 1,000 SHIELD — my votes cast, my voting accuracy."
+
+> ⚙️ **If SHIELD balance shows 0:** The deployer needs to distribute tokens first. If you're the deployer wallet, click **"Mint 100 SHIELD"** button that appears. If not, run `npx hardhat run scripts/distribute-shield.js --network sepolia` beforehand.
 
 **SAY:**
 
@@ -387,11 +389,13 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 
 > "We use **Quadratic Voting**. If I stake a hundred tokens, I don't get a hundred votes. I get the square root — ten votes. A whale staking ten thousand tokens? Only a hundred votes, not ten thousand."
 
-[POINT AT vote counts or staking interface]
+[POINT AT the vote input field — shows "SHIELD Tokens to Stake" label and "Vote Power (√tokens)" display]
+
+> "See the input? It says 'Tokens to Stake' and the vote power updates live as I type. The label shows the square root calculation in real time."
 
 > "This means a group of regular users can outvote any single whale. Real community power. And the threshold is strict — sixty percent vote power to confirm."
 
-**ACTION:** Cast a vote on the proposal (if possible — vote Yes with some SHIELD tokens).
+**ACTION:** Enter a token amount (e.g. 100) in the stake field. Point at the live vote power display showing √100 = 10.00. Click **"Confirm Scam"** to cast your vote.
 
 [MetaMask popup → Confirm]
 
@@ -423,7 +427,7 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 > ⚠️ **MOST IMPORTANT ACT. SLOW DOWN. MAKE EYE CONTACT.**
 > If you ran `demo-setup.js` + `demo-execute.js`, `isScammer = true` is already set on-chain.
 
-**ACTION:** Go back to Send. Paste `0x098B716B8Aaf21512996dC57EB0615e2383E2f96`. Enter `0.0001` MON. Click Analyze.
+**ACTION:** Go back to Send. Paste `0x098B716B8Aaf21512996dC57EB0615e2383E2f96`. Enter `0.0001` ETH. Click Analyze.
 
 **SAY:**
 
@@ -558,7 +562,7 @@ Prepare for these. Rehearse the answers until they're reflex.
 
 **Q2: "Are the smart contracts actually deployed or is this just a frontend mock?"**
 
-> "Six contracts deployed on Monad Testnet. WalletVerifier at `0x78d8Ff...dD30`, CivicSBT at `0xc5A1E1...ADcB`, QuadraticVoting at `0xC9755c...1846`. You just watched me submit real MetaMask transactions — open Monad Explorer right now and you'll see every tx hash in the contract history."
+> "Five contracts deployed on Sepolia Testnet. QuadraticVoting at `0x810DA3...dEc5C`, CivicSBT at `0xD820d3...B0D8E`, WalletVerifier at `0xe73f31...3a95b`. You just watched me submit real MetaMask transactions — open Sepolia Etherscan right now and you'll see every tx hash in the contract history."
 
 ---
 
@@ -570,31 +574,31 @@ Prepare for these. Rehearse the answers until they're reflex.
 
 **Q4: "Quadratic voting sounds nice but how do you prevent one person creating multiple wallets to game the system?"**
 
-> "The WalletVerifier contract reads your real wallet balance and your actual DAO voting history — both immutable on-chain facts. A fresh Sybil wallet has zero balance, zero participation, zero accuracy — its trust score is nearly zero, so its vote carries almost no weight. You'd need to fund dozens of wallets with real MON AND build a genuine voting track record on each one over time. The cost of Sybil attack scales with real economic commitment, not just wallet creation."
+> "The WalletVerifier contract reads your real wallet balance and your actual DAO voting history — both immutable on-chain facts. A fresh Sybil wallet has zero balance, zero participation, zero accuracy — its trust score is nearly zero, so its vote carries almost no weight. You'd need to fund dozens of wallets with real ETH AND build a genuine voting track record on each one over time. The cost of Sybil attack scales with real economic commitment, not just wallet creation."
 
 ---
 
-**Q5: "Why Monad instead of Ethereum mainnet?"**
+**Q5: "Why Sepolia instead of Ethereum mainnet?"**
 
-> "Sub-second finality, EVM-compatible, and gas under a penny. Our flywheel requires frequent, small transactions — reports, votes, score updates. On Ethereum mainnet those would cost dollars each. On Monad, they cost fractions of a cent. More participation, faster flywheel, safer network."
+> "Sepolia is Ethereum's primary testnet — full EVM compatibility, same tooling, zero real cost. Our flywheel requires frequent, small transactions — reports, votes, score updates. On Ethereum mainnet those would cost dollars each. On Sepolia, they're free. In production, we'd deploy to an L2 like Base or Arbitrum for sub-cent gas while keeping Ethereum security."
 
 ---
 
 **Q6: "What's your moat? Can't someone just fork this and copy it?"**
 
-> "They can fork the code. They can't fork the data. Every confirmed scam, every community vote, every SBT reputation score — that's a growing dataset that makes the AI smarter every day. The flywheel is a network effect. Day one of a fork has zero data. Day one of NeuroShield has every scam the community has ever confirmed."
+> "They can fork the code. They can't fork the data. Every confirmed scam, every community vote, every SBT reputation score — that's a growing dataset that makes the AI smarter every day. The flywheel is a network effect. Day one of a fork has zero data. Day one of CuraBlock has every scam the community has ever confirmed."
 
 ---
 
 **Q7: "How does the Base64 on-chain metadata work for the SBT? Isn't that expensive?"**
 
-> "The trust score is a small JSON object — maybe 200 bytes. We encode it as Base64 and store it directly in the contract's `tokenURI()` return value as a `data:application/json;base64,...` URI. No IPFS gateway to go down. No pinning service to pay. The metadata is the contract. It costs roughly 50,000 gas to update — under a cent on Monad."
+> "The trust score is a small JSON object — maybe 200 bytes. We encode it as Base64 and store it directly in the contract's `tokenURI()` return value as a `data:application/json;base64,...` URI. No IPFS gateway to go down. No pinning service to pay. The metadata is the contract. It costs roughly 50,000 gas to update — under a cent on Sepolia, pennies on an L2."
 
 ---
 
 **Q8: "This is a hackathon. How much of this actually works end-to-end versus being stitched together?"**
 
-> "Open DevTools Console right now. Every contract call that produced every number on that screen is logged — function name, return value, contract address. Cross-reference any of them on Monad Explorer. I'll wait."
+> "Open DevTools Console right now. Every contract call that produced every number on that screen is logged — function name, return value, contract address. Cross-reference any of them on Sepolia Etherscan. I'll wait."
 
 [PAUSE — look at judges. Don't fill the silence. Let them decide if they want to challenge it. They won't.]
 
@@ -606,9 +610,15 @@ Prepare for these. Rehearse the answers until they're reflex.
 
 ---
 
+**Q10: "How do users get SHIELD tokens to vote?"**
+
+> "The deployer mints 1 million SHIELD on contract deployment. Users receive tokens via distribution — we run a Hardhat script that transfers SHIELD from the deployer to any wallet. If the connected wallet IS the deployer, the UI shows a 'Mint 100 SHIELD' button that calls `mint()` directly on-chain. For production, we'd add a faucet contract or airdrop based on on-chain activity."
+
+---
+
 **Q10: "What happens after the hackathon? How does this scale?"**
 
-> "The flywheel scales itself. More users → more reports → more DAO votes → more confirmed scams → more accurate ML boost layer → safer network → more users. The Go backend, PostgreSQL, and Monad contracts handle production load already. We add cross-chain monitoring next — same flywheel, more chains feeding it. And every chain's data improves the model for every other chain."
+> "The flywheel scales itself. More users → more reports → more DAO votes → more confirmed scams → more accurate ML boost layer → safer network → more users. The Go backend, PostgreSQL, and Sepolia contracts handle production load already. We add cross-chain monitoring next — same flywheel, more chains feeding it. And every chain's data improves the model for every other chain."
 
 ---
 
@@ -622,7 +632,7 @@ Prepare for these. Rehearse the answers until they're reflex.
 
 If a judge asks "sum this up in one sentence," say:
 
-> **"NeuroShield is a self-improving crypto security firewall — every scam the community confirms makes the AI smarter, and every wallet gets safer without a single engineer touching the code."**
+> **"CuraBlock is a self-improving crypto security firewall — every scam the community confirms makes the AI smarter, and every wallet gets safer without a single engineer touching the code."**
 
 ---
 
@@ -652,9 +662,10 @@ If a judge asks "sum this up in one sentence," say:
 | ML API slow (Render cold start ~30s) | "Free tier, 30-second cold start. Here's the API response I cached:" → show curl output or screenshot                                                             |
 | ML returns 10% instead of 85%        | "ML sees small tx as safe — exploit was years ago. But watch Layer 2 — DAO still catches it at 95%. That's the point of two layers."                              |
 | DAO boost shows +0% in ACT 6         | You skipped `demo-execute.js`. Explain verbally: "Once `executeProposal()` fires, `isScammer` returns true and Layer 2 activates. Let me show the contract code." |
-| Transaction reverts                  | "Gas edge case on testnet. Let me show you the successful prep-run txs on Monad Explorer." Switch to explorer tab.                                                |
+| Transaction reverts                  | "Gas edge case on testnet. Let me show you the successful prep-run txs on Sepolia Etherscan." Switch to explorer tab.                                                |
 | SBT trust score shows 0%             | Fresh wallet — expected. "Zero because I haven't voted yet. After ACT 5 that bar moves up — watch."                                                               |
-| DAO proposal doesn't appear          | Check Reports tab for blocked txs. Say: "Backend event listener indexes it — let me show you the `ProposalCreated` event on the explorer directly."               |
+| SHIELD balance shows 0               | Run `npx hardhat run scripts/distribute-shield.js --network sepolia` or use the "Mint 100 SHIELD" button if you're the deployer wallet.                             |
+| DAO proposal doesn't appear          | Check Reports tab for blocked txs. Say: "Backend event listener indexes it — let me show you the `ProposalCreated` event on Etherscan directly."                    |
 
 ---
 
@@ -674,4 +685,4 @@ If a judge asks "sum this up in one sentence," say:
 
 7. **The ACT 6 silence is your most powerful moment.** After "Layer 2 — look at that" → stop talking for 2 full seconds. Let them read "CONFIRMED SCAM". The silence IS the drama.
 
-8. **If asked about the system design**, use this sentence: "Four layers — React frontend calls Monad directly for reads, routes ML through a Vite proxy, Go backend runs an event-listener goroutine that syncs confirmed scams from on-chain to PostgreSQL, closing the flywheel loop."
+8. **If asked about the system design**, use this sentence: "Four layers — React frontend calls Sepolia directly for reads, routes ML through a Vite proxy, Go backend runs an event-listener goroutine that syncs confirmed scams from on-chain to PostgreSQL, closing the flywheel loop."
