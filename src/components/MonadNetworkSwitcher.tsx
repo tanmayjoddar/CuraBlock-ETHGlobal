@@ -46,7 +46,7 @@ export default function MonadNetworkSwitcher({
     return (
       <div className={`flex items-center gap-2 text-green-600 ${className}`}>
         <span className="w-2 h-2 bg-green-600 rounded-full"></span>
-        Connected to Monad Testnet
+        Connected to Sepolia Testnet
       </div>
     );
   }
@@ -64,7 +64,7 @@ export default function MonadNetworkSwitcher({
           <path d="M12 4V20M12 4L6 10M12 4L18 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       )}
-      Switch to Monad Testnet
+      Switch to Sepolia Testnet
     </button>
   );
 }

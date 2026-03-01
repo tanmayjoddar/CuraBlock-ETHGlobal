@@ -1195,7 +1195,7 @@ const Index = () => {
                         "On-chain Base64 JSON",
                         "text-green-400",
                       ],
-                      ["Network", "Monad Testnet (10143)", "text-white"],
+                      ["Network", "Sepolia Testnet (11155111)", "text-white"],
                       [
                         "Updatable By",
                         "WalletVerifier (authorized only)",

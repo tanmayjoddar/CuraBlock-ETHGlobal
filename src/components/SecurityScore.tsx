@@ -161,6 +161,12 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
     setChecking(true);
     setCheckResult(null);
     try {
+      // Ensure wallet is on Sepolia (chain 11155111) for on-chain reads
+      if (walletConnector.chainId && walletConnector.chainId !== 11155111) {
+        console.warn(`[SecurityScore] Wrong chain ${walletConnector.chainId}, switching to Sepolia...`);
+        const { switchToMonadNetwork } = await import("@/web3/wallet");
+        await switchToMonadNetwork(); // This actually switches to Sepolia
+      }
       const [isScam, scamScore] = await Promise.all([
         contractService.isScamAddress(checkAddress),
         contractService.getScamScore(checkAddress).catch(() => 0),
@@ -452,7 +458,7 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
                     On-Chain Scam Registry Lookup
                   </h4>
                   <p className="text-xs text-white/30">
-                    Checks the DAO-confirmed scam registry on Monad Testnet
+                    Checks the DAO-confirmed scam registry on Sepolia Testnet
                   </p>
                 </div>
 

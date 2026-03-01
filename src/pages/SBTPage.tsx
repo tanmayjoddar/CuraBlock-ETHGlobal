@@ -157,7 +157,7 @@ const SBTPage: React.FC = () => {
                   "#f87171",
                 ],
                 ["Metadata Storage", "On-chain Base64 JSON", "#4ade80"],
-                ["Network", "Monad Testnet (10143)", "#fff"],
+                ["Network", "Sepolia Testnet (11155111)", "#fff"],
                 ["Updatable By", "WalletVerifier (authorized only)", "#fff"],
               ].map(([k, v, c]) => (
                 <div key={k} className="ns-kv-row">
