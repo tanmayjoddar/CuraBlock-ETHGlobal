@@ -17,6 +17,10 @@ import {
 const MONAD_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
 const getReadProvider = () => new JsonRpcProvider(MONAD_RPC);
 
+// Etherscan Sepolia API key – works without one at 1 req / 5 s rate limit
+const ETHERSCAN_KEY = (import.meta as any).env?.VITE_ETHERSCAN_API_KEY || "";
+const etherscanApiSuffix = ETHERSCAN_KEY ? `&apikey=${ETHERSCAN_KEY}` : "";
+
 // ------- Types -------
 
 interface TransactionLog {
@@ -433,7 +437,7 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
         let walletAgeDays = 1;
         try {
           const etherscanRes = await fetch(
-            `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=50&sort=asc&apikey=YourApiKeyToken`,
+            `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=50&sort=asc${etherscanApiSuffix}`,
           );
           const etherscanData = await etherscanRes.json();
           if (
@@ -487,7 +491,7 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
         let onChainTxs: any[] = [];
         try {
           const res = await fetch(
-            `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc&apikey=YourApiKeyToken`,
+            `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc${etherscanApiSuffix}`,
           );
           const data = await res.json();
           if (data.status === "1" && Array.isArray(data.result)) {
@@ -539,10 +543,10 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
               time: `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`,
               fullTime: d.toLocaleString(),
               score: scamStatusMap[counterparty?.toLowerCase()]
-                ? 95
+                ? 0.95
                 : isFailed
-                  ? 30
-                  : 5,
+                  ? 0.30
+                  : 0.05,
               address: counterparty || "",
               blocked: isFailed,
               isScammer: scamStatusMap[counterparty?.toLowerCase()] || false,
