@@ -34,7 +34,10 @@ async function main() {
   const decimals = await shield.decimals();
   const deployerBalance = await shield.balanceOf(deployer.address);
   console.log(
-    `Deployer ${symbol} balance: ${ethers.formatUnits(deployerBalance, decimals)}`
+    `Deployer ${symbol} balance: ${ethers.formatUnits(
+      deployerBalance,
+      decimals,
+    )}`,
   );
 
   const amountWei = ethers.parseUnits(AMOUNT_PER_USER, decimals);
@@ -42,7 +45,10 @@ async function main() {
   for (const recipient of RECIPIENTS) {
     const before = await shield.balanceOf(recipient);
     console.log(
-      `\n${recipient} current balance: ${ethers.formatUnits(before, decimals)} ${symbol}`
+      `\n${recipient} current balance: ${ethers.formatUnits(
+        before,
+        decimals,
+      )} ${symbol}`,
     );
 
     console.log(`Sending ${AMOUNT_PER_USER} ${symbol}...`);
@@ -52,13 +58,16 @@ async function main() {
 
     const after = await shield.balanceOf(recipient);
     console.log(
-      `  New balance: ${ethers.formatUnits(after, decimals)} ${symbol}`
+      `  New balance: ${ethers.formatUnits(after, decimals)} ${symbol}`,
     );
   }
 
   const deployerAfter = await shield.balanceOf(deployer.address);
   console.log(
-    `\nDeployer remaining: ${ethers.formatUnits(deployerAfter, decimals)} ${symbol}`
+    `\nDeployer remaining: ${ethers.formatUnits(
+      deployerAfter,
+      decimals,
+    )} ${symbol}`,
   );
   console.log("Done!");
 }

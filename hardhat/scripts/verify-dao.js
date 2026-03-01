@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 async function main() {
   const qv = await ethers.getContractAt(
     "QuadraticVoting",
-    "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C"
+    "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C",
   );
   const ronin = "0x098B716B8Aaf21512996dC57EB0615e2383E2f96";
 

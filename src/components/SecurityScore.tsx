@@ -172,7 +172,9 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
     const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
     // Always use the address from addresses.json — never from contractService
     // which can be overwritten by init() if MetaMask is on another chain.
-    const QV_ADDRESS = (addresses as any).quadraticVoting || "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
+    const QV_ADDRESS =
+      (addresses as any).quadraticVoting ||
+      "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
     const QV_ABI = [
       "function isScammer(address) view returns (bool)",
       "function scamScore(address) view returns (uint256)",
@@ -186,7 +188,11 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
       // 2. Verify the QuadraticVoting contract is actually deployed
       const code = await sepoliaProvider.getCode(QV_ADDRESS);
       if (!code || code === "0x") {
-        console.warn("[SecurityScore] No bytecode at", QV_ADDRESS, "on Sepolia");
+        console.warn(
+          "[SecurityScore] No bytecode at",
+          QV_ADDRESS,
+          "on Sepolia",
+        );
         setCheckResult({
           isScam: false,
           score: 0,
@@ -232,8 +238,7 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
     } catch (err: any) {
       console.error("[SecurityScore] Address check failed:", err);
       const isBadData =
-        err?.code === "BAD_DATA" ||
-        err?.message?.includes("could not decode");
+        err?.code === "BAD_DATA" || err?.message?.includes("could not decode");
       setCheckResult({
         isScam: false,
         score: 0,
@@ -542,7 +547,8 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
                 {checkResult && (
                   <div
                     className={`rounded-xl border p-5 ${
-                      checkResult.status === "no_contract" || checkResult.status === "error"
+                      checkResult.status === "no_contract" ||
+                      checkResult.status === "error"
                         ? "bg-amber-500/[0.06] border-amber-500/20"
                         : checkResult.isScam
                           ? "bg-red-500/[0.06] border-red-500/20"
@@ -550,7 +556,8 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
                     }`}
                   >
                     <div className="flex items-center gap-3 mb-3">
-                      {checkResult.status === "no_contract" || checkResult.status === "error" ? (
+                      {checkResult.status === "no_contract" ||
+                      checkResult.status === "error" ? (
                         <AlertTriangle className="w-6 h-6 text-amber-400" />
                       ) : checkResult.isScam ? (
                         <XCircle className="w-6 h-6 text-red-400" />
@@ -560,7 +567,8 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
                       <div>
                         <div
                           className={`font-semibold ${
-                            checkResult.status === "no_contract" || checkResult.status === "error"
+                            checkResult.status === "no_contract" ||
+                            checkResult.status === "error"
                               ? "text-amber-400"
                               : checkResult.isScam
                                 ? "text-red-400"
@@ -595,8 +603,8 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
                       </div>
                     )}
                     <p className="text-xs text-white/20 mt-2">
-                      Source: QuadraticVoting contract{" "}
-                      <code>isScammer()</code> — direct Sepolia RPC read
+                      Source: QuadraticVoting contract <code>isScammer()</code>{" "}
+                      — direct Sepolia RPC read
                     </p>
                   </div>
                 )}

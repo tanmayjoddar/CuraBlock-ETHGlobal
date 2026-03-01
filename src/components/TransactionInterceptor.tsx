@@ -345,7 +345,9 @@ const TransactionInterceptor: React.FC<TransactionInterceptorProps> = ({
             const daoStart = performance.now();
 
             const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
-            const QV_ADDRESS = (addresses as any).quadraticVoting || "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
+            const QV_ADDRESS =
+              (addresses as any).quadraticVoting ||
+              "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
             const QV_ABI = [
               "function isScammer(address) view returns (bool)",
               "function scamScore(address) view returns (uint256)",

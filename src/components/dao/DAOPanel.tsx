@@ -192,7 +192,9 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
       } as ToastProps);
 
       // Refresh balance
-      const newBalance = await contractService.getShieldBalance(walletConnector.address);
+      const newBalance = await contractService.getShieldBalance(
+        walletConnector.address,
+      );
       setUserShield(newBalance);
     } catch (error: any) {
       console.error("Claim error:", error);
@@ -237,7 +239,8 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
       const tokensWei = ethers.parseEther(tokens).toString();
 
       // Approve tokens if needed
-      const needsApproval = await contractService.needsShieldApproval(tokensWei);
+      const needsApproval =
+        await contractService.needsShieldApproval(tokensWei);
       if (needsApproval) {
         const approveTx = await contractService.approveShield(tokensWei);
         await approveTx.wait();
@@ -279,11 +282,19 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
         errorMsg = "This proposal is no longer active.";
       } else if (errorMsg.includes("Voting period ended")) {
         errorMsg = "The voting period for this proposal has ended.";
-      } else if (errorMsg.includes("Token transfer failed") || errorMsg.includes("insufficient") || errorMsg.includes("exceeds balance")) {
-        errorMsg = "Insufficient SHIELD tokens. You need enough tokens to stake for your vote.";
+      } else if (
+        errorMsg.includes("Token transfer failed") ||
+        errorMsg.includes("insufficient") ||
+        errorMsg.includes("exceeds balance")
+      ) {
+        errorMsg =
+          "Insufficient SHIELD tokens. You need enough tokens to stake for your vote.";
       } else if (errorMsg.includes("Vote power too low")) {
         errorMsg = "Token amount too small — try staking more SHIELD tokens.";
-      } else if (errorMsg.includes("user rejected") || errorMsg.includes("denied")) {
+      } else if (
+        errorMsg.includes("user rejected") ||
+        errorMsg.includes("denied")
+      ) {
         errorMsg = "Transaction was rejected in your wallet.";
       }
 
@@ -404,24 +415,26 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
                   </Tooltip>
                 </div>
                 <div className="text-sm text-gray-400">Available Balance</div>
-                {parseFloat(userShield || "0") === 0 && walletConnector.address && (
-                  <div className="mt-2">
-                    {isOwner ? (
-                      <Button
-                        size="sm"
-                        className="bg-cyan-600/80 hover:bg-cyan-600 text-white text-xs"
-                        onClick={handleClaimShield}
-                        disabled={isClaiming}
-                      >
-                        {isClaiming ? "Minting..." : "Mint 100 SHIELD"}
-                      </Button>
-                    ) : (
-                      <p className="text-xs text-yellow-400 mt-1">
-                        Contact the deployer to receive SHIELD tokens for voting
-                      </p>
-                    )}
-                  </div>
-                )}
+                {parseFloat(userShield || "0") === 0 &&
+                  walletConnector.address && (
+                    <div className="mt-2">
+                      {isOwner ? (
+                        <Button
+                          size="sm"
+                          className="bg-cyan-600/80 hover:bg-cyan-600 text-white text-xs"
+                          onClick={handleClaimShield}
+                          disabled={isClaiming}
+                        >
+                          {isClaiming ? "Minting..." : "Mint 100 SHIELD"}
+                        </Button>
+                      ) : (
+                        <p className="text-xs text-yellow-400 mt-1">
+                          Contact the deployer to receive SHIELD tokens for
+                          voting
+                        </p>
+                      )}
+                    </div>
+                  )}
               </div>
 
               <div className="text-center p-4 rounded-lg bg-white/5 border border-white/10">
@@ -532,8 +545,11 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
                       <span className="text-white">
                         {(() => {
                           const val = Number(proposal.votesFor) / 1e9;
-                          return val < 0.01 && val > 0 ? val.toFixed(6) : val.toFixed(2);
-                        })()} Power
+                          return val < 0.01 && val > 0
+                            ? val.toFixed(6)
+                            : val.toFixed(2);
+                        })()}{" "}
+                        Power
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -541,8 +557,11 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
                       <span className="text-white">
                         {(() => {
                           const val = Number(proposal.votesAgainst) / 1e9;
-                          return val < 0.01 && val > 0 ? val.toFixed(6) : val.toFixed(2);
-                        })()} Power
+                          return val < 0.01 && val > 0
+                            ? val.toFixed(6)
+                            : val.toFixed(2);
+                        })()}{" "}
+                        Power
                       </span>
                     </div>
                   </div>

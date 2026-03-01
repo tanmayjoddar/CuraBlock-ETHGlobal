@@ -321,7 +321,9 @@ const OraclePage: React.FC = () => {
     }
   }, [address]);
 
-  const risk = result ? getRiskProfile(result.threatScore, result.isConfirmed) : null;
+  const risk = result
+    ? getRiskProfile(result.threatScore, result.isConfirmed)
+    : null;
 
   return (
     <div

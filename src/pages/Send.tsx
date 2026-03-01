@@ -278,16 +278,24 @@ const Send = () => {
         if (switchErr.code === 4902) {
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
-            params: [{
-              chainId: "0xaa36a7",
-              chainName: "Sepolia Testnet",
-              nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
-              rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"],
-              blockExplorerUrls: ["https://sepolia.etherscan.io"],
-            }],
+            params: [
+              {
+                chainId: "0xaa36a7",
+                chainName: "Sepolia Testnet",
+                nativeCurrency: {
+                  name: "Sepolia ETH",
+                  symbol: "ETH",
+                  decimals: 18,
+                },
+                rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"],
+                blockExplorerUrls: ["https://sepolia.etherscan.io"],
+              },
+            ],
           });
         } else {
-          throw new Error("Please switch to Sepolia Testnet to send transactions.");
+          throw new Error(
+            "Please switch to Sepolia Testnet to send transactions.",
+          );
         }
       }
     }

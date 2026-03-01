@@ -78,7 +78,9 @@ interface SoulboundTokenProps {
   connectedAddress?: string | null;
 }
 
-const SoulboundToken: React.FC<SoulboundTokenProps> = ({ connectedAddress }) => {
+const SoulboundToken: React.FC<SoulboundTokenProps> = ({
+  connectedAddress,
+}) => {
   const [profile, setProfile] = useState<SBTProfile | null>(null);
   const [liveBreakdown, setLiveBreakdown] = useState<TrustBreakdown | null>(
     null,

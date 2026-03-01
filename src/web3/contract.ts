@@ -64,13 +64,13 @@ const SEPOLIA_QV_ADDRESS =
   "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
 
 const CONTRACT_ADDRESSES: { [chainId: string]: string } = {
-  "1":    "0x0000000000000000000000000000000000000000",
-  "5":    "0x0000000000000000000000000000000000000000",
+  "1": "0x0000000000000000000000000000000000000000",
+  "5": "0x0000000000000000000000000000000000000000",
   "11155111": SEPOLIA_QV_ADDRESS,
   // Legacy Monad chain IDs — redirect to Sepolia address so reads/writes
   // never accidentally hit the old Monad contract.
-  "10143":    SEPOLIA_QV_ADDRESS,
-  "143":      SEPOLIA_QV_ADDRESS,
+  "10143": SEPOLIA_QV_ADDRESS,
+  "143": SEPOLIA_QV_ADDRESS,
 };
 
 /**
@@ -199,8 +199,14 @@ class ContractService extends EventEmitter {
       let chainId = network.chainId.toString();
       console.log("Current network:", { chainId, name: network.name });
 
-      if (chainId !== "11155111" && typeof window !== "undefined" && window.ethereum) {
-        console.warn(`[Contract] Wrong chain ${chainId}, switching to Sepolia...`);
+      if (
+        chainId !== "11155111" &&
+        typeof window !== "undefined" &&
+        window.ethereum
+      ) {
+        console.warn(
+          `[Contract] Wrong chain ${chainId}, switching to Sepolia...`,
+        );
         try {
           await window.ethereum.request({
             method: "wallet_switchEthereumChain",
@@ -210,21 +216,31 @@ class ContractService extends EventEmitter {
           if (switchErr.code === 4902) {
             await window.ethereum.request({
               method: "wallet_addEthereumChain",
-              params: [{
-                chainId: "0xaa36a7",
-                chainName: "Sepolia Testnet",
-                nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
-                rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"],
-                blockExplorerUrls: ["https://sepolia.etherscan.io"],
-              }],
+              params: [
+                {
+                  chainId: "0xaa36a7",
+                  chainName: "Sepolia Testnet",
+                  nativeCurrency: {
+                    name: "Sepolia ETH",
+                    symbol: "ETH",
+                    decimals: 18,
+                  },
+                  rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"],
+                  blockExplorerUrls: ["https://sepolia.etherscan.io"],
+                },
+              ],
             });
           } else {
-            throw new Error("Please switch to Sepolia Testnet to use CuraBlock");
+            throw new Error(
+              "Please switch to Sepolia Testnet to use CuraBlock",
+            );
           }
         }
         // Re-create provider/signer after chain switch
         const { BrowserProvider } = await import("ethers");
-        walletConnector.provider = patchProviderForMonad(new BrowserProvider(window.ethereum));
+        walletConnector.provider = patchProviderForMonad(
+          new BrowserProvider(window.ethereum),
+        );
         walletConnector.signer = await walletConnector.provider.getSigner();
         network = await walletConnector.provider.getNetwork();
         chainId = network.chainId.toString();
@@ -640,7 +656,9 @@ class ContractService extends EventEmitter {
       const owner = await shield.owner();
       if (owner.toLowerCase() === walletConnector.address?.toLowerCase()) {
         // Owner can mint directly
-        console.log(`[SHIELD] Owner detected — minting ${amount} SHIELD to self`);
+        console.log(
+          `[SHIELD] Owner detected — minting ${amount} SHIELD to self`,
+        );
         return shield.mint(walletConnector.address, amountWei, {
           gasLimit: 100000n,
         });
@@ -652,7 +670,7 @@ class ContractService extends EventEmitter {
     // Not the owner — cannot self-serve. Throw with instructions.
     throw new Error(
       "SHIELD tokens must be distributed by the contract owner. " +
-      "Run: npx hardhat run scripts/distribute-shield.js --network sepolia"
+        "Run: npx hardhat run scripts/distribute-shield.js --network sepolia",
     );
   }
 

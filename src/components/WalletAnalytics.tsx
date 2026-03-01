@@ -433,18 +433,24 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
         let walletAgeDays = 1;
         try {
           const etherscanRes = await fetch(
-            `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=50&sort=asc&apikey=YourApiKeyToken`
+            `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=50&sort=asc&apikey=YourApiKeyToken`,
           );
           const etherscanData = await etherscanRes.json();
-          if (etherscanData.status === "1" && Array.isArray(etherscanData.result)) {
+          if (
+            etherscanData.status === "1" &&
+            Array.isArray(etherscanData.result)
+          ) {
             const txs = etherscanData.result;
             receivedCount = txs.filter(
-              (tx: any) => tx.to?.toLowerCase() === address.toLowerCase()
+              (tx: any) => tx.to?.toLowerCase() === address.toLowerCase(),
             ).length;
             // Wallet age from first tx timestamp
             if (txs.length > 0) {
               const firstTxTime = parseInt(txs[0].timeStamp) * 1000;
-              walletAgeDays = Math.max(1, Math.floor((Date.now() - firstTxTime) / (1000 * 60 * 60 * 24)));
+              walletAgeDays = Math.max(
+                1,
+                Math.floor((Date.now() - firstTxTime) / (1000 * 60 * 60 * 24)),
+              );
             }
           }
         } catch (e) {
@@ -481,7 +487,7 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
         let onChainTxs: any[] = [];
         try {
           const res = await fetch(
-            `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc&apikey=YourApiKeyToken`
+            `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc&apikey=YourApiKeyToken`,
           );
           const data = await res.json();
           if (data.status === "1" && Array.isArray(data.result)) {
@@ -502,7 +508,7 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
                     : tx.from?.toLowerCase();
                 return counterparty;
               })
-              .filter(Boolean)
+              .filter(Boolean),
           ),
         ];
         const scamStatusMap: Record<string, boolean> = {};
@@ -519,7 +525,7 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
 
         // Build timeline from on-chain transactions
         const sortedTxs = [...onChainTxs].sort(
-          (a, b) => parseInt(a.timeStamp) - parseInt(b.timeStamp)
+          (a, b) => parseInt(a.timeStamp) - parseInt(b.timeStamp),
         );
         setTimelineData(
           sortedTxs.map((tx: any) => {
@@ -532,7 +538,11 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
             return {
               time: `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`,
               fullTime: d.toLocaleString(),
-              score: scamStatusMap[counterparty?.toLowerCase()] ? 95 : isFailed ? 30 : 5,
+              score: scamStatusMap[counterparty?.toLowerCase()]
+                ? 95
+                : isFailed
+                  ? 30
+                  : 5,
               address: counterparty || "",
               blocked: isFailed,
               isScammer: scamStatusMap[counterparty?.toLowerCase()] || false,
