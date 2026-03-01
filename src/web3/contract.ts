@@ -52,28 +52,22 @@ const SHIELD_TOKEN_ABI = [
   "function approve(address spender, uint256 amount) returns (bool)",
 ];
 
-// Contract addresses for each network - load from environment variables when available
+// The ONLY supported network for NeuroShield contracts is Sepolia.
+// All chain IDs resolve to the same Sepolia contract address so that
+// even if MetaMask is briefly on another chain, init() will switch first.
+const SEPOLIA_QV_ADDRESS =
+  import.meta.env.VITE_CONTRACT_ADDRESS_SEPOLIA ||
+  (addresses as any).quadraticVoting ||
+  "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
+
 const CONTRACT_ADDRESSES: { [chainId: string]: string } = {
-  // Mainnet and testnet addresses
-  "1":
-    import.meta.env.VITE_CONTRACT_ADDRESS_MAINNET ||
-    "0x0000000000000000000000000000000000000000",
-  "5":
-    import.meta.env.VITE_CONTRACT_ADDRESS_GOERLI ||
-    "0x0000000000000000000000000000000000000000",
-  "11155111":
-    import.meta.env.VITE_CONTRACT_ADDRESS_SEPOLIA ||
-    (addresses as any).quadraticVoting ||
-    "0x0000000000000000000000000000000000000000", // Sepolia testnet — loaded from addresses.json
-  "10143":
-    import.meta.env.VITE_CONTRACT_ADDRESS_MONAD ||
-    (addresses as any).quadraticVoting ||
-    "0x0000000000000000000000000000000000000000", // Monad testnet (legacy)
-  // Fallback: some wallets/RPCs may report a different chain ID for Monad testnet
-  "143":
-    import.meta.env.VITE_CONTRACT_ADDRESS_MONAD ||
-    (addresses as any).quadraticVoting ||
-    "0x0000000000000000000000000000000000000000",
+  "1":    "0x0000000000000000000000000000000000000000",
+  "5":    "0x0000000000000000000000000000000000000000",
+  "11155111": SEPOLIA_QV_ADDRESS,
+  // Legacy Monad chain IDs — redirect to Sepolia address so reads/writes
+  // never accidentally hit the old Monad contract.
+  "10143":    SEPOLIA_QV_ADDRESS,
+  "143":      SEPOLIA_QV_ADDRESS,
 };
 
 /**
@@ -197,30 +191,47 @@ class ContractService extends EventEmitter {
         }
       }
 
-      // Get the chain ID
-      const network = await walletConnector.provider.getNetwork();
-      const chainId = network.chainId.toString();
+      // ── Force switch to Sepolia (11155111) before any contract init ──
+      let network = await walletConnector.provider.getNetwork();
+      let chainId = network.chainId.toString();
+      console.log("Current network:", { chainId, name: network.name });
 
-      console.log("Current network:", {
-        chainId,
-        name: network.name,
-      });
-
-      // Get the contract address for the current network
-      const contractAddress = CONTRACT_ADDRESSES[chainId];
-      console.log("Contract address for network:", {
-        chainId,
-        contractAddress,
-      });
-
-      if (
-        !contractAddress ||
-        contractAddress === "0x0000000000000000000000000000000000000000"
-      ) {
-        throw new Error(
-          `No contract deployed on network ${chainId}. Please switch to a supported network.`,
-        );
+      if (chainId !== "11155111" && typeof window !== "undefined" && window.ethereum) {
+        console.warn(`[Contract] Wrong chain ${chainId}, switching to Sepolia...`);
+        try {
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: "0xaa36a7" }], // 11155111
+          });
+        } catch (switchErr: any) {
+          if (switchErr.code === 4902) {
+            await window.ethereum.request({
+              method: "wallet_addEthereumChain",
+              params: [{
+                chainId: "0xaa36a7",
+                chainName: "Sepolia Testnet",
+                nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
+                rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"],
+                blockExplorerUrls: ["https://sepolia.etherscan.io"],
+              }],
+            });
+          } else {
+            throw new Error("Please switch to Sepolia Testnet to use NeuroShield.");
+          }
+        }
+        // Re-create provider/signer after chain switch
+        const { BrowserProvider } = await import("ethers");
+        walletConnector.provider = patchProviderForMonad(new BrowserProvider(window.ethereum));
+        walletConnector.signer = await walletConnector.provider.getSigner();
+        network = await walletConnector.provider.getNetwork();
+        chainId = network.chainId.toString();
+        walletConnector.chainId = Number(chainId);
+        console.log("[Contract] Switched to Sepolia, chainId:", chainId);
       }
+
+      // Always use the Sepolia contract address
+      const contractAddress = SEPOLIA_QV_ADDRESS;
+      console.log("Contract address:", contractAddress);
 
       // Set the contract addresses
       this.QUADRATIC_VOTING_ADDRESS = contractAddress;
