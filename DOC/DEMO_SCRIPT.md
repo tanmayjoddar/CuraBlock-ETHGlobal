@@ -198,7 +198,7 @@ The DAO boost jumps from `+0%` to `+10%` when you rescan in ACT 6.
 
 [PAUSE — 3 full seconds. Don't move. Let the room absorb it.]
 
-> "This is NeuroShield. In the next six minutes, I'll take one real exploit address — the wallet behind the **six-hundred-twenty-five million dollar** Ronin Bridge hack — and show you what happens when AI, community governance, and on-chain identity run as a single, closed feedback loop.
+> "This is CuraBlock In the next six minutes, I'll take one real exploit address — the wallet behind the **six-hundred-twenty-five million dollar** Ronin Bridge hack — and show you what happens when AI, community governance, and on-chain identity run as a single, closed feedback loop.
 >
 > Everything you're about to see is **live**. Real contracts. Real ML model. Real MetaMask transactions. Let's go."
 

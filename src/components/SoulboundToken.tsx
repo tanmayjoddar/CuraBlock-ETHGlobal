@@ -71,12 +71,19 @@ const VerificationBadge: React.FC<{ level: number }> = ({ level }) => {
 // MAIN COMPONENT
 // ════════════════════════════════════════════
 
-const SoulboundToken: React.FC = () => {
+interface SoulboundTokenProps {
+  /** The explicitly-connected wallet address from the parent.
+   *  When undefined/empty, the component shows "Connect your wallet".
+   *  This prevents stale data — only renders when the user intentionally connects. */
+  connectedAddress?: string | null;
+}
+
+const SoulboundToken: React.FC<SoulboundTokenProps> = ({ connectedAddress }) => {
   const [profile, setProfile] = useState<SBTProfile | null>(null);
   const [liveBreakdown, setLiveBreakdown] = useState<TrustBreakdown | null>(
     null,
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [minting, setMinting] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,10 +91,12 @@ const SoulboundToken: React.FC = () => {
   const [showRawURI, setShowRawURI] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
-  // Load SBT data
+  // Load SBT data — always fetches FRESH on-chain data, never localStorage
   const loadSBTData = useCallback(async (address: string) => {
     setLoading(true);
     setError(null);
+    setProfile(null);
+    setLiveBreakdown(null);
     try {
       const [sbtProfile, breakdown] = await Promise.all([
         getSBTProfile(address),
@@ -104,16 +113,20 @@ const SoulboundToken: React.FC = () => {
     }
   }, []);
 
-  // Watch wallet connection
+  // Only load SBT data when parent provides an explicitly-connected address.
+  // This prevents showing stale data from a previous session or silent auto-reconnect.
   useEffect(() => {
-    const addr = walletConnector.address;
-    if (addr) {
-      setWalletAddress(addr);
-      loadSBTData(addr);
+    if (connectedAddress) {
+      setWalletAddress(connectedAddress);
+      loadSBTData(connectedAddress);
     } else {
+      // Wallet not connected — clear everything
+      setWalletAddress(null);
+      setProfile(null);
+      setLiveBreakdown(null);
       setLoading(false);
     }
-  }, [loadSBTData]);
+  }, [connectedAddress, loadSBTData]);
 
   // Subscribe to on-chain SBT events
   useEffect(() => {
@@ -298,13 +311,6 @@ const SoulboundToken: React.FC = () => {
               </h3>
               {breakdown && (
                 <>
-                  <TrustScoreBar
-                    label="Wallet History"
-                    value={breakdown.walletHistory}
-                    max={40}
-                    color="#8b5cf6"
-                  />
-
                   <TrustScoreBar
                     label="Wallet History"
                     value={breakdown.walletHistory}

@@ -1139,7 +1139,7 @@ const Index = () => {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <SoulboundToken />
+                  <SoulboundToken connectedAddress={currentAddress || null} />
                 </CardContent>
               </Card>
               <Card className="group bg-black/20 backdrop-blur-lg border-white/10 hover:bg-black/30 transition-all duration-300">
