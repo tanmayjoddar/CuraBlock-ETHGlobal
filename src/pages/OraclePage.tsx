@@ -1,11 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { JsonRpcProvider, Contract, isAddress } from "ethers";
+import addresses from "@/web3/addresses.json";
 
 // ── Contract config ──
 const RPC_URL = "https://ethereum-sepolia-rpc.publicnode.com";
 const CONTRACT_ADDRESS =
   import.meta.env.VITE_CONTRACT_ADDRESS_SEPOLIA ||
-  "0x0000000000000000000000000000000000000000";
+  (addresses as any).quadraticVoting ||
+  "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
 
 const ORACLE_ABI = [
   "function getThreatScore(address wallet) public view returns (uint256)",
@@ -34,11 +36,12 @@ interface RiskProfile {
 }
 
 // ── Risk mapping ──
-function getRiskProfile(score: number): RiskProfile {
-  if (score >= 80)
+// isConfirmed overrides score — a DAO-confirmed scammer is always CRITICAL
+function getRiskProfile(score: number, isConfirmed?: boolean): RiskProfile {
+  if (isConfirmed || score >= 80)
     return {
       color: "#FF3B3B",
-      label: "🔴 CRITICAL",
+      label: "🔴 CRITICAL — DAO CONFIRMED SCAM",
       description: "DAO confirmed scammer. Block all transactions.",
       borderColor: "rgba(255,59,59,0.6)",
       glowColor: "rgba(255,59,59,0.25)",
@@ -318,7 +321,7 @@ const OraclePage: React.FC = () => {
     }
   }, [address]);
 
-  const risk = result ? getRiskProfile(result.threatScore) : null;
+  const risk = result ? getRiskProfile(result.threatScore, result.isConfirmed) : null;
 
   return (
     <div
