@@ -69,32 +69,56 @@ const CuraBlockLogo = ({
 
     {/* Top block */}
     <rect
-      x="25" y="17" width="14" height="9" rx="2"
-      stroke="url(#cb-inner)" strokeWidth="1.8" fill="rgba(34,211,238,0.08)"
+      x="25"
+      y="17"
+      width="14"
+      height="9"
+      rx="2"
+      stroke="url(#cb-inner)"
+      strokeWidth="1.8"
+      fill="rgba(34,211,238,0.08)"
     />
     {/* Bottom-left block */}
     <rect
-      x="16" y="31" width="14" height="9" rx="2"
-      stroke="url(#cb-inner)" strokeWidth="1.8" fill="rgba(129,140,248,0.08)"
+      x="16"
+      y="31"
+      width="14"
+      height="9"
+      rx="2"
+      stroke="url(#cb-inner)"
+      strokeWidth="1.8"
+      fill="rgba(129,140,248,0.08)"
     />
     {/* Bottom-right block */}
     <rect
-      x="34" y="31" width="14" height="9" rx="2"
-      stroke="url(#cb-inner)" strokeWidth="1.8" fill="rgba(168,85,247,0.08)"
+      x="34"
+      y="31"
+      width="14"
+      height="9"
+      rx="2"
+      stroke="url(#cb-inner)"
+      strokeWidth="1.8"
+      fill="rgba(168,85,247,0.08)"
     />
 
     {/* Chain links connecting blocks */}
     <path
       d="M29 26 L23 31"
-      stroke="url(#cb-inner)" strokeWidth="1.8" strokeLinecap="round"
+      stroke="url(#cb-inner)"
+      strokeWidth="1.8"
+      strokeLinecap="round"
     />
     <path
       d="M35 26 L41 31"
-      stroke="url(#cb-inner)" strokeWidth="1.8" strokeLinecap="round"
+      stroke="url(#cb-inner)"
+      strokeWidth="1.8"
+      strokeLinecap="round"
     />
     <path
       d="M30 35.5 L34 35.5"
-      stroke="url(#cb-inner)" strokeWidth="1.8" strokeLinecap="round"
+      stroke="url(#cb-inner)"
+      strokeWidth="1.8"
+      strokeLinecap="round"
     />
 
     {/* Chain node dots */}
@@ -105,7 +129,10 @@ const CuraBlockLogo = ({
     {/* Security check mark (subtle) */}
     <path
       d="M28 44 L31 47 L37 41"
-      stroke="url(#cb-inner)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      stroke="url(#cb-inner)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       opacity="0.7"
     />
 
