@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 5173,
     proxy: {
       "/api": {
-        target: "https://curablock-ethglobal.onrender.com",
+        target: "https://curablock-ethglobal-1.onrender.com",
         changeOrigin: true,
         secure: false,
       },
