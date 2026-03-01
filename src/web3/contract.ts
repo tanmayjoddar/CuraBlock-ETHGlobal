@@ -23,6 +23,43 @@ import EventEmitter from "events";
 import type { Result } from "ethers";
 import addresses from "./addresses.json";
 
+/**
+ * Safely get gas overrides for transactions.
+ * Some MetaMask versions don't support eth_maxPriorityFeePerGas, so we
+ * try EIP-1559 first and fall back to legacy gasPrice.
+ */
+async function safeGasOverrides(
+  provider: ethers.BrowserProvider | null | undefined,
+  gasLimit: bigint = 200000n,
+): Promise<Record<string, unknown>> {
+  if (!provider) return { gasLimit };
+  try {
+    const feeData = await provider.getFeeData();
+    if (feeData.maxFeePerGas) {
+      return {
+        gasLimit,
+        maxFeePerGas: feeData.maxFeePerGas,
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? 1_500_000_000n,
+      };
+    }
+    if (feeData.gasPrice) {
+      return { gasLimit, gasPrice: feeData.gasPrice };
+    }
+  } catch {
+    // eth_maxPriorityFeePerGas not supported — fall back to legacy
+    try {
+      const block = await provider.getBlock("latest");
+      const gasPrice = block?.baseFeePerGas
+        ? block.baseFeePerGas * 2n
+        : 2_000_000_000n;
+      return { gasLimit, gasPrice };
+    } catch {
+      // absolute fallback
+    }
+  }
+  return { gasLimit, gasPrice: 2_000_000_000n };
+}
+
 // ABI for the QuadraticVoting contract
 const QUADRATIC_VOTING_ABI = [
   // View functions
@@ -576,10 +613,11 @@ class ContractService extends EventEmitter {
         );
       }
 
+      const overrides = await safeGasOverrides(walletConnector.provider, 21000n);
       const tx = await walletConnector.signer!.sendTransaction({
         to,
         value: amountWei,
-        // Sepolia supports EIP-1559 natively
+        ...overrides,
       });
 
       return tx;
@@ -628,10 +666,8 @@ class ContractService extends EventEmitter {
     if (!shield) {
       throw new Error("SHIELD token not available on this network");
     }
-    const feeData = await walletConnector.provider?.getFeeData();
-    return shield.approve(this.QUADRATIC_VOTING_ADDRESS, amount, {
-      gasLimit: 100000n,
-    });
+    const overrides = await safeGasOverrides(walletConnector.provider, 100000n);
+    return shield.approve(this.QUADRATIC_VOTING_ADDRESS, amount, overrides);
   }
 
   /**
@@ -659,9 +695,11 @@ class ContractService extends EventEmitter {
         console.log(
           `[SHIELD] Owner detected — minting ${amount} SHIELD to self`,
         );
-        return shield.mint(walletConnector.address, amountWei, {
-          gasLimit: 100000n,
-        });
+        const overrides = await safeGasOverrides(
+          walletConnector.provider,
+          100000n,
+        );
+        return shield.mint(walletConnector.address, amountWei, overrides);
       }
     } catch (e) {
       console.warn("[SHIELD] Could not check owner:", e);
@@ -776,10 +814,8 @@ class ContractService extends EventEmitter {
     tokens: string,
   ): Promise<ethers.ContractTransactionResponse> {
     const { voting } = await this.getSignerContract();
-    const feeData = await walletConnector.provider?.getFeeData();
-    return voting.castVote(proposalId, support, tokens, {
-      gasLimit: 500000n,
-    });
+    const overrides = await safeGasOverrides(walletConnector.provider, 500000n);
+    return voting.castVote(proposalId, support, tokens, overrides);
   }
   public async reportScam(
     suspiciousAddress: string,
@@ -882,24 +918,28 @@ class ContractService extends EventEmitter {
       });
 
       // Prepare transaction with gas estimate
-      const gasEstimate = await this.votingContract.submitProposal.estimateGas(
-        suspiciousAddress,
-        description,
-        evidence,
-      );
+      let gasEstimate: bigint;
+      try {
+        gasEstimate = await this.votingContract.submitProposal.estimateGas(
+          suspiciousAddress,
+          description,
+          evidence,
+        );
+        console.log("Gas estimate:", gasEstimate.toString());
+      } catch {
+        gasEstimate = 400000n; // safe fallback
+      }
 
-      console.log("Gas estimate:", gasEstimate.toString()); // Submit transaction with enough gas and handle gas price
-      const feeData = await walletConnector.provider?.getFeeData();
-      console.log("Current gas price:", feeData?.gasPrice?.toString());
+      const overrides = await safeGasOverrides(
+        walletConnector.provider,
+        (gasEstimate * 120n) / 100n,
+      );
 
       const tx = await this.votingContract.submitProposal(
         suspiciousAddress,
         description,
         evidence,
-        {
-          gasLimit: (gasEstimate * 120n) / 100n, // Add 20% buffer
-          // Sepolia supports EIP-1559 natively
-        },
+        overrides,
       );
 
       console.log("Transaction submitted:", tx.hash);

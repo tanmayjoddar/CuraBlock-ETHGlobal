@@ -11,7 +11,10 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("Deployer:", deployer.address);
 
-  const voting = await ethers.getContractAt("QuadraticVoting", QUADRATIC_VOTING_ADDRESS);
+  const voting = await ethers.getContractAt(
+    "QuadraticVoting",
+    QUADRATIC_VOTING_ADDRESS,
+  );
 
   const current = await voting.votingPeriod();
   console.log("Current voting period:", Number(current), "seconds");
