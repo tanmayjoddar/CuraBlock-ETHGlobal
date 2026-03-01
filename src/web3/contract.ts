@@ -65,6 +65,8 @@ const QUADRATIC_VOTING_ABI = [
   // View functions
   "function owner() view returns (address)",
   "function shieldToken() view returns (address)",
+  "function proposals(uint256) view returns (address reporter, address suspiciousAddress, string description, string evidence, uint256 votesFor, uint256 votesAgainst, uint256 startTime, uint256 endTime, bool isActive, bool executed)",
+  "function votingPeriod() view returns (uint256)",
   "function getProposal(uint256 proposalId) view returns (address reporter, address suspiciousAddress, string description, string evidence, uint256 votesFor, uint256 votesAgainst, bool isActive)",
   "function getVote(uint256 proposalId, address voter) view returns (tuple(bool hasVoted, bool support, uint256 tokens, uint256 power))",
   "function isScammer(address) view returns (bool)",
@@ -813,7 +815,61 @@ class ContractService extends EventEmitter {
     support: boolean,
     tokens: string,
   ): Promise<ethers.ContractTransactionResponse> {
-    const { voting } = await this.getSignerContract();
+    const { voting, shield } = await this.getSignerContract();
+
+    // ── Pre-flight checks to give clear error messages ──
+    const voter = walletConnector.address;
+    if (!voter) throw new Error("Wallet not connected");
+
+    // 1. Check proposal exists and is active, and voting period hasn't ended
+    try {
+      // Use proposals() auto-getter which includes startTime and endTime
+      const p = await voting.proposals(proposalId);
+      const isActive = p.isActive ?? p[8];
+      if (!isActive) throw new Error("This proposal is no longer active — it may have already been executed.");
+
+      const endTime = Number(p.endTime ?? p[7] ?? 0);
+      if (endTime > 0) {
+        const block = await walletConnector.provider?.getBlock("latest");
+        const now = block ? block.timestamp : Math.floor(Date.now() / 1000);
+        if (now > endTime) {
+          const ago = Math.round((now - endTime) / 60);
+          throw new Error(`Voting period has ended (${ago} minute(s) ago). Create a new proposal to vote.`);
+        }
+      }
+    } catch (preflight: any) {
+      // Re-throw our custom errors; swallow decode errors from missing contract
+      if (preflight.message && !preflight.message.includes("could not decode") && !preflight.message.includes("BAD_DATA")) {
+        throw preflight;
+      }
+    }
+
+    // 2. Check if already voted
+    try {
+      const vote = await voting.getVote(proposalId, voter);
+      if (vote.hasVoted || vote[0]) {
+        throw new Error("You have already voted on this proposal.");
+      }
+    } catch (e: any) {
+      if (e.message?.includes("already voted")) throw e;
+    }
+
+    // 3. Check SHIELD token balance
+    if (shield) {
+      const balance = await shield.balanceOf(voter);
+      if (ethers.getBigInt(balance) < ethers.getBigInt(tokens)) {
+        const have = ethers.formatEther(balance);
+        const need = ethers.formatEther(tokens);
+        throw new Error(`Insufficient SHIELD tokens. You have ${have} but need ${need}.`);
+      }
+
+      // 4. Check allowance
+      const allowance = await shield.allowance(voter, this.QUADRATIC_VOTING_ADDRESS);
+      if (ethers.getBigInt(allowance) < ethers.getBigInt(tokens)) {
+        throw new Error("SHIELD token approval insufficient. Please try again — the approve step may not have completed.");
+      }
+    }
+
     const overrides = await safeGasOverrides(walletConnector.provider, 500000n);
     return voting.castVote(proposalId, support, tokens, overrides);
   }

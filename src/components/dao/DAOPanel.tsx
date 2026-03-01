@@ -276,19 +276,22 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
 
       // Parse common revert reasons into user-friendly messages
       let errorMsg = error.message || "Failed to submit vote";
-      if (errorMsg.includes("Already voted")) {
+      if (errorMsg.includes("already voted") || errorMsg.includes("Already voted")) {
         errorMsg = "You have already voted on this proposal.";
-      } else if (errorMsg.includes("Proposal not active")) {
+      } else if (errorMsg.includes("no longer active") || errorMsg.includes("Proposal not active")) {
         errorMsg = "This proposal is no longer active.";
-      } else if (errorMsg.includes("Voting period ended")) {
-        errorMsg = "The voting period for this proposal has ended.";
+      } else if (errorMsg.includes("Voting period has ended") || errorMsg.includes("Voting period ended")) {
+        errorMsg = errorMsg; // keep the detailed message from pre-flight
+      } else if (errorMsg.includes("Insufficient SHIELD") || errorMsg.includes("insufficient")) {
+        errorMsg = errorMsg; // keep the detailed balance info
+      } else if (errorMsg.includes("approval insufficient")) {
+        errorMsg = "SHIELD token approval didn't complete. Please try voting again.";
       } else if (
         errorMsg.includes("Token transfer failed") ||
-        errorMsg.includes("insufficient") ||
         errorMsg.includes("exceeds balance")
       ) {
         errorMsg =
-          "Insufficient SHIELD tokens. You need enough tokens to stake for your vote.";
+          "SHIELD token transfer failed. Check your balance and try again.";
       } else if (errorMsg.includes("Vote power too low")) {
         errorMsg = "Token amount too small — try staking more SHIELD tokens.";
       } else if (
@@ -296,6 +299,8 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
         errorMsg.includes("denied")
       ) {
         errorMsg = "Transaction was rejected in your wallet.";
+      } else if (errorMsg.includes("execution reverted")) {
+        errorMsg = "Transaction reverted on-chain. The proposal may have ended or you may have already voted.";
       }
 
       setError(errorMsg);
