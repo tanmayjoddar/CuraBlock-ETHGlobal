@@ -464,7 +464,7 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
           uniqueAddresses.map(async (addr) => {
             if (!addr) return;
             try {
-              scamStatusMap[addr] = await contractService.isScammer(addr);
+              scamStatusMap[addr] = await contractService.isScamAddress(addr);
             } catch {
               scamStatusMap[addr] = false;
             }
@@ -650,7 +650,7 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
     {
       label: "Current Balance",
       value: formatEther(analytics.total_ether_balance),
-      unit: "MON",
+      unit: "ETH",
       color: "#60a5fa",
       glow: "rgba(59,130,246,0.5)",
       bg: "rgba(59,130,246,0.1)",

@@ -419,7 +419,7 @@ const Send = () => {
                   style={{ paddingRight: 52 }}
                   required
                 />
-                <span className="send-input-unit">MON</span>
+                <span className="send-input-unit">ETH</span>
               </div>
             </div>
 
