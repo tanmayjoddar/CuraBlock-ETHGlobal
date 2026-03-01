@@ -668,8 +668,10 @@ class ContractService extends EventEmitter {
     if (!shield) {
       throw new Error("SHIELD token not available on this network");
     }
+    const amtBN = ethers.getBigInt(amount);
     const overrides = await safeGasOverrides(walletConnector.provider, 100000n);
-    return shield.approve(this.QUADRATIC_VOTING_ADDRESS, amount, overrides);
+    console.log("[SHIELD] approve args:", { spender: this.QUADRATIC_VOTING_ADDRESS, amount: amtBN.toString() });
+    return shield.approve(this.QUADRATIC_VOTING_ADDRESS, amtBN, overrides);
   }
 
   /**
@@ -871,7 +873,30 @@ class ContractService extends EventEmitter {
     }
 
     const overrides = await safeGasOverrides(walletConnector.provider, 500000n);
-    return voting.castVote(proposalId, support, tokens, overrides);
+
+    // Ensure arguments are the correct types for ABI encoding
+    const pid = ethers.getBigInt(proposalId);
+    const tkn = ethers.getBigInt(tokens);
+
+    console.log("[DAO] castVote args:", {
+      proposalId: pid.toString(),
+      support,
+      tokens: tkn.toString(),
+      contract: voting.target,
+      overrides,
+    });
+
+    // Verify the call will encode correctly by doing a static call first
+    try {
+      await voting.castVote.staticCall(pid, support, tkn, overrides);
+    } catch (simErr: any) {
+      // Extract revert reason from static call
+      const reason = simErr?.revert?.args?.[0] || simErr?.reason || simErr?.message || "Unknown reason";
+      console.error("[DAO] castVote staticCall failed:", reason);
+      throw new Error(`Vote would fail on-chain: ${reason}`);
+    }
+
+    return voting.castVote(pid, support, tkn, overrides);
   }
   public async reportScam(
     suspiciousAddress: string,
