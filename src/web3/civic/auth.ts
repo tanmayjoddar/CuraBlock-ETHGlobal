@@ -1,4 +1,4 @@
-// Wallet Verification Integration for NeuroShield
+// Wallet Verification Integration for CuraBlock
 // Connects to on-chain WalletVerifier + QuadraticVoting contracts for real verification
 // Falls back to local heuristics when contracts unavailable
 
@@ -355,7 +355,7 @@ export const getCivicProfile = async (
 
   return {
     id: `civic-${address.slice(2, 10)}`,
-    name: `NeuroShield User ${shortAddr}`,
+    name: `CuraBlock User ${shortAddr}`,
     avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${address}`,
     verificationLevel: levelMap[verification.verificationLevel || 0] || "Basic",
     verified: verification.isVerified,

@@ -437,7 +437,7 @@ const SoulboundToken: React.FC<SoulboundTokenProps> = ({
             <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-6">
               <p className="text-sm text-gray-300 italic leading-relaxed">
                 "In Web2, your reputation lives on a server someone else owns.
-                They can delete it. They can sell it. In NeuroShield, your
+                They can delete it. They can sell it. In CuraBlock, your
                 reputation is permanently encoded on-chain, bound to your wallet
                 forever, impossible to transfer, impossible to fake, impossible
                 to take down."

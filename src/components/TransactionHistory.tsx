@@ -138,7 +138,7 @@ const TransactionHistory = () => {
                 timestamp: "On-chain history",
                 gasUsed: "N/A",
                 reason:
-                  "Send a transaction through NeuroShield to see ML-scanned logs here",
+                  "Send a transaction through CuraBlock to see ML-scanned logs here",
               },
             ]);
           } else {

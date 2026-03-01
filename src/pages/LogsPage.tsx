@@ -48,7 +48,7 @@ const LogsPage: React.FC = () => {
           <div className="ns-topbar-left" onClick={() => navigate("/")}>
             <NeuroShieldLogo size={28} />
             <span className="ns-topbar-title">
-              Neuro<em>Shield</em>
+              Cura<em>Block</em>
             </span>
           </div>
           <button className="ns-back-btn" onClick={() => navigate(-1 as any)}>

@@ -55,7 +55,7 @@ const SHIELD_TOKEN_ABI = [
   "function owner() view returns (address)",
 ];
 
-// The ONLY supported network for NeuroShield contracts is Sepolia.
+// The ONLY supported network for CuraBlock contracts is Sepolia.
 // All chain IDs resolve to the same Sepolia contract address so that
 // even if MetaMask is briefly on another chain, init() will switch first.
 const SEPOLIA_QV_ADDRESS =

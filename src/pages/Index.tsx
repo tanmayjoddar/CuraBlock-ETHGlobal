@@ -781,7 +781,7 @@ const Index = () => {
             <div className="af-logo" onClick={() => setActiveTab("overview")}>
               <NeuroShieldLogo size={34} />
               <span className="af-logo-text">
-                Neuro<em>Shield</em>
+                Cura<em>Block</em>
               </span>
             </div>
 

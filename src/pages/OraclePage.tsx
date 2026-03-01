@@ -432,7 +432,7 @@ const OraclePage: React.FC = () => {
               WebkitTextFillColor: "transparent",
             }}
           >
-            ⚡ NeuroShield
+            ⚡ CuraBlock
             <br />
             Threat Oracle
           </h1>
