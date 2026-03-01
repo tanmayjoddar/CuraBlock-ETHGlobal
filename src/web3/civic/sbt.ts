@@ -71,7 +71,8 @@ const WALLET_VERIFIER_ADDRESS =
   (addresses as any).walletVerifier ||
   import.meta.env.VITE_WALLET_VERIFIER_ADDRESS ||
   "";
-const MONAD_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
+const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
+const SEPOLIA_CHAIN_ID = "0xaa36a7"; // 11155111
 
 // QuadraticVoting ABI (voter stats only)
 const QV_ABI = [
@@ -95,10 +96,53 @@ const QV_ADDRESS =
  */
 const getReadProvider = (): JsonRpcProvider | null => {
   try {
-    return new JsonRpcProvider(MONAD_RPC);
+    return new JsonRpcProvider(SEPOLIA_RPC);
   } catch {
     return null;
   }
+};
+
+/**
+ * Force MetaMask to Sepolia before any write transaction.
+ * Re-creates provider/signer so the tx is sent on the correct chain
+ * and gas is paid in Sepolia ETH (not mainnet ETH).
+ */
+const ensureSepoliaChain = async (): Promise<void> => {
+  if (typeof window === "undefined" || !window.ethereum) return;
+
+  const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
+  if (currentChainId === SEPOLIA_CHAIN_ID) return; // already on Sepolia
+
+  console.warn(`[SBT] Wrong chain ${currentChainId}, switching to Sepolia...`);
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: SEPOLIA_CHAIN_ID }],
+    });
+  } catch (switchErr: any) {
+    if (switchErr.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: SEPOLIA_CHAIN_ID,
+          chainName: "Sepolia Testnet",
+          nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
+          rpcUrls: [SEPOLIA_RPC],
+          blockExplorerUrls: ["https://sepolia.etherscan.io"],
+        }],
+      });
+    } else {
+      throw new Error("Please switch to Sepolia Testnet to mint/update your SBT.");
+    }
+  }
+
+  // Re-create provider/signer on the correct chain
+  const { BrowserProvider: BP } = await import("ethers");
+  walletConnector.provider = new BP(window.ethereum) as any;
+  walletConnector.signer = await (walletConnector.provider as any).getSigner();
+  const network = await (walletConnector.provider as any).getNetwork();
+  walletConnector.chainId = Number(network.chainId);
+  console.log("[SBT] Switched to Sepolia, chainId:", walletConnector.chainId);
 };
 
 const getSBTContract = (
@@ -350,6 +394,9 @@ export const mintSBT = async (): Promise<{
       };
     }
 
+    // Force MetaMask to Sepolia so gas is paid in Sepolia ETH
+    await ensureSepoliaChain();
+
     const userAddress = await walletConnector.signer.getAddress();
 
     // Check if user already has an SBT
@@ -370,9 +417,9 @@ export const mintSBT = async (): Promise<{
       };
     }
 
-    // Call mintSBT() — score is computed entirely on-chain
+    // Call mintSBT() — score is computed entirely on-chain (on Sepolia)
     console.log(
-      `[SBT] Calling WalletVerifier.mintSBT()  |  contract: ${WALLET_VERIFIER_ADDRESS}`,
+      `[SBT] Calling WalletVerifier.mintSBT()  |  contract: ${WALLET_VERIFIER_ADDRESS}  |  chain: Sepolia`,
     );
     const tx = await verifier.mintSBT();
 
@@ -408,6 +455,9 @@ export const updateSBT = async (): Promise<{
       return { success: false, error: "Wallet not connected." };
     }
 
+    // Force MetaMask to Sepolia so gas is paid in Sepolia ETH
+    await ensureSepoliaChain();
+
     const userAddress = await walletConnector.signer.getAddress();
 
     const existing = await hasSBT(userAddress);
@@ -424,7 +474,7 @@ export const updateSBT = async (): Promise<{
     }
 
     console.log(
-      `[SBT] Calling WalletVerifier.refreshSBT()  |  contract: ${WALLET_VERIFIER_ADDRESS}`,
+      `[SBT] Calling WalletVerifier.refreshSBT()  |  contract: ${WALLET_VERIFIER_ADDRESS}  |  chain: Sepolia`,
     );
     const tx = await verifier.refreshSBT();
 

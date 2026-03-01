@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SoulboundToken from "@/components/SoulboundToken";
 import { Fingerprint, ArrowLeft } from "lucide-react";
 import NeuroShieldLogo from "@/components/NeuroShieldLogo";
+import walletConnector from "@/web3/wallet";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap');
@@ -68,6 +69,36 @@ const CSS = `
 
 const SBTPage: React.FC = () => {
   const navigate = useNavigate();
+  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
+
+  // Only show SBT data when wallet is EXPLICITLY connected (user clicked Connect).
+  // We verify via eth_accounts that MetaMask truly has an authorized account,
+  // AND that walletConnector.signer exists (meaning connect() was called this session).
+  useEffect(() => {
+    const checkWallet = async () => {
+      // Only trust walletConnector.address if signer is also present
+      // (signer is only set by the explicit connect() flow).
+      if (walletConnector.address && walletConnector.signer) {
+        setConnectedAddress(walletConnector.address);
+      }
+    };
+    checkWallet();
+
+    const onConnect = () => setConnectedAddress(walletConnector.address);
+    const onDisconnect = () => setConnectedAddress(null);
+    const onAccountChange = () => {
+      setConnectedAddress(walletConnector.address);
+    };
+
+    window.addEventListener("wallet_connected", onConnect);
+    window.addEventListener("wallet_disconnected", onDisconnect);
+    window.addEventListener("wallet_accountChanged", onAccountChange);
+    return () => {
+      window.removeEventListener("wallet_connected", onConnect);
+      window.removeEventListener("wallet_disconnected", onDisconnect);
+      window.removeEventListener("wallet_accountChanged", onAccountChange);
+    };
+  }, []);
 
   return (
     <>
@@ -104,7 +135,7 @@ const SBTPage: React.FC = () => {
 
           {/* SBT component */}
           <div className="ns-a ns-a2">
-            <SoulboundToken />
+            <SoulboundToken connectedAddress={connectedAddress} />
           </div>
 
           {/* Trust Score */}
