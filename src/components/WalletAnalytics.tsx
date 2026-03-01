@@ -17,8 +17,9 @@ import {
 const MONAD_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
 const getReadProvider = () => new JsonRpcProvider(MONAD_RPC);
 
-// Etherscan Sepolia API key – works without one at 1 req / 5 s rate limit
-const ETHERSCAN_KEY = (import.meta as any).env?.VITE_ETHERSCAN_API_KEY || "";
+// Etherscan V2 API (unified endpoint for all chains)
+const ETHERSCAN_KEY = ((import.meta as any).env?.VITE_ETHERSCAN_API_KEY || "").trim();
+const etherscanBase = `https://api.etherscan.io/v2/api?chainid=11155111`;
 const etherscanApiSuffix = ETHERSCAN_KEY ? `&apikey=${ETHERSCAN_KEY}` : "";
 
 // ------- Types -------
@@ -437,7 +438,7 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
         let walletAgeDays = 1;
         try {
           const etherscanRes = await fetch(
-            `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=50&sort=asc${etherscanApiSuffix}`,
+            `${etherscanBase}&module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=50&sort=asc${etherscanApiSuffix}`,
           );
           const etherscanData = await etherscanRes.json();
           if (
@@ -491,7 +492,7 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
         let onChainTxs: any[] = [];
         try {
           const res = await fetch(
-            `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc${etherscanApiSuffix}`,
+            `${etherscanBase}&module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc${etherscanApiSuffix}`,
           );
           const data = await res.json();
           if (data.status === "1" && Array.isArray(data.result)) {
