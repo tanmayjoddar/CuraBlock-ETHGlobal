@@ -233,7 +233,24 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
       );
     } catch (error: any) {
       console.error("Voting error:", error);
-      setError(error.message || "Failed to submit vote");
+
+      // Parse common revert reasons into user-friendly messages
+      let errorMsg = error.message || "Failed to submit vote";
+      if (errorMsg.includes("Already voted")) {
+        errorMsg = "You have already voted on this proposal.";
+      } else if (errorMsg.includes("Proposal not active")) {
+        errorMsg = "This proposal is no longer active.";
+      } else if (errorMsg.includes("Voting period ended")) {
+        errorMsg = "The voting period for this proposal has ended.";
+      } else if (errorMsg.includes("Token transfer failed") || errorMsg.includes("insufficient") || errorMsg.includes("exceeds balance")) {
+        errorMsg = "Insufficient SHIELD tokens. You need enough tokens to stake for your vote.";
+      } else if (errorMsg.includes("Vote power too low")) {
+        errorMsg = "Token amount too small — try staking more SHIELD tokens.";
+      } else if (errorMsg.includes("user rejected") || errorMsg.includes("denied")) {
+        errorMsg = "Transaction was rejected in your wallet.";
+      }
+
+      setError(errorMsg);
       // Revert the optimistic update
       setUserVotes((prev) => ({ ...prev, [proposalId]: null }));
 
@@ -458,13 +475,19 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
                     <div className="flex items-center space-x-2">
                       <ThumbsUp className="h-4 w-4 text-green-500" />
                       <span className="text-white">
-                        {(Number(proposal.votesFor) / 1e9).toFixed(2)} Power
+                        {(() => {
+                          const val = Number(proposal.votesFor) / 1e9;
+                          return val < 0.01 && val > 0 ? val.toFixed(6) : val.toFixed(2);
+                        })()} Power
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <ThumbsDown className="h-4 w-4 text-red-500" />
                       <span className="text-white">
-                        {(Number(proposal.votesAgainst) / 1e9).toFixed(2)} Power
+                        {(() => {
+                          const val = Number(proposal.votesAgainst) / 1e9;
+                          return val < 0.01 && val > 0 ? val.toFixed(6) : val.toFixed(2);
+                        })()} Power
                       </span>
                     </div>
                   </div>
