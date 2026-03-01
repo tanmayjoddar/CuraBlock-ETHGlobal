@@ -14,6 +14,7 @@ import {
 import { ethers } from "ethers";
 import walletConnector from "@/web3/wallet";
 import contractService from "@/web3/contract";
+import addresses from "@/web3/addresses.json";
 import { buildWalletFeatures } from "@/services/walletFeatures";
 
 interface TransactionInterceptorProps {
@@ -337,14 +338,26 @@ const TransactionInterceptor: React.FC<TransactionInterceptorProps> = ({
 
           // ══════════════════════════════════════════
           // LAYER 2: DAO Community Check (On-Chain)
+          // Direct Sepolia RPC — never depends on MetaMask chain
           // ══════════════════════════════════════════
           try {
             console.log("🏛️ Starting DAO community check for:", toAddress);
             const daoStart = performance.now();
-            const [isScammer, scamScore] = await Promise.all([
-              contractService.isScamAddress(toAddress),
-              contractService.getScamScore(toAddress),
+
+            const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
+            const QV_ADDRESS = (addresses as any).quadraticVoting || "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
+            const QV_ABI = [
+              "function isScammer(address) view returns (bool)",
+              "function scamScore(address) view returns (uint256)",
+            ];
+            const sepoliaProvider = new ethers.JsonRpcProvider(SEPOLIA_RPC);
+            const qv = new ethers.Contract(QV_ADDRESS, QV_ABI, sepoliaProvider);
+
+            const [isScammer, rawScamScore] = await Promise.all([
+              qv.isScammer(toAddress),
+              qv.scamScore(toAddress),
             ]);
+            const scamScore = Number(rawScamScore ?? 0);
 
             let activeProposals = 0;
             let verdict = "unknown";
@@ -374,7 +387,7 @@ const TransactionInterceptor: React.FC<TransactionInterceptorProps> = ({
               scamScore,
               activeProposals,
               verdict,
-              contract: `QuadraticVoting @ ${contractService.getContractAddress?.() || "unknown"}`, // dynamic address
+              contract: `QuadraticVoting @ ${QV_ADDRESS}`, // direct Sepolia read
               calls: [
                 "isScammer(address) → eth_call",
                 "scamScore(address) → eth_call",

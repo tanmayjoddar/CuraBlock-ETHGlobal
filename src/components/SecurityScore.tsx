@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import walletConnector from "@/web3/wallet";
 import contractService from "@/web3/contract";
+import addresses from "@/web3/addresses.json";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -169,7 +170,9 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
 
     const { ethers } = await import("ethers");
     const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
-    const QV_ADDRESS = contractService.getContractAddress();
+    // Always use the address from addresses.json — never from contractService
+    // which can be overwritten by init() if MetaMask is on another chain.
+    const QV_ADDRESS = (addresses as any).quadraticVoting || "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
     const QV_ABI = [
       "function isScammer(address) view returns (bool)",
       "function scamScore(address) view returns (uint256)",

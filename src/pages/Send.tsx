@@ -266,6 +266,31 @@ const Send = () => {
   };
 
   const prepareSendTransaction = async () => {
+    // Force MetaMask to Sepolia before building the tx
+    const chainId = await window.ethereum.request({ method: "eth_chainId" });
+    if (chainId !== "0xaa36a7") {
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0xaa36a7" }], // Sepolia 11155111
+        });
+      } catch (switchErr: any) {
+        if (switchErr.code === 4902) {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: "0xaa36a7",
+              chainName: "Sepolia Testnet",
+              nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
+              rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"],
+              blockExplorerUrls: ["https://sepolia.etherscan.io"],
+            }],
+          });
+        } else {
+          throw new Error("Please switch to Sepolia Testnet to send transactions.");
+        }
+      }
+    }
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
     const value = ethers.parseEther(amount.toString());
