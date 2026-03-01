@@ -5,7 +5,7 @@
 const { ethers } = require("hardhat");
 
 const QUADRATIC_VOTING_ADDRESS = "0x810DA31a1eFB767652b2f969972d2A612AfdEc5C";
-const NEW_PERIOD_SECONDS = 60; // 1 minute
+const NEW_PERIOD_SECONDS = 120; // 2 minutes – enough for approve + vote flow
 
 async function main() {
   const [deployer] = await ethers.getSigners();
