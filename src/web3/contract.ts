@@ -50,6 +50,9 @@ const SHIELD_TOKEN_ABI = [
   "function balanceOf(address account) view returns (uint256)",
   "function allowance(address owner, address spender) view returns (uint256)",
   "function approve(address spender, uint256 amount) returns (bool)",
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function mint(address to, uint256 amount)",
+  "function owner() view returns (address)",
 ];
 
 // The ONLY supported network for NeuroShield contracts is Sepolia.
@@ -216,7 +219,7 @@ class ContractService extends EventEmitter {
               }],
             });
           } else {
-            throw new Error("Please switch to Sepolia Testnet to use NeuroShield.");
+            throw new Error("Please switch to Sepolia Testnet to use CuraBlock");
           }
         }
         // Re-create provider/signer after chain switch
@@ -613,6 +616,58 @@ class ContractService extends EventEmitter {
     return shield.approve(this.QUADRATIC_VOTING_ADDRESS, amount, {
       gasLimit: 100000n,
     });
+  }
+
+  /**
+   * Claim SHIELD tokens for voting.
+   * - If connected wallet IS the deployer/owner → calls mint() to create new tokens
+   * - Otherwise → the deployer must transfer tokens (use distribute-shield.js script)
+   *
+   * @param amount Human-readable amount (e.g. "100")
+   * @returns Transaction response
+   */
+  public async claimShieldTokens(
+    amount: string = "100",
+  ): Promise<ethers.ContractTransactionResponse> {
+    const { shield } = await this.getSignerContract();
+    if (!shield) {
+      throw new Error("SHIELD token not available on this network");
+    }
+    const amountWei = ethers.parseEther(amount);
+
+    // Check if connected wallet is the SHIELD token owner
+    try {
+      const owner = await shield.owner();
+      if (owner.toLowerCase() === walletConnector.address?.toLowerCase()) {
+        // Owner can mint directly
+        console.log(`[SHIELD] Owner detected — minting ${amount} SHIELD to self`);
+        return shield.mint(walletConnector.address, amountWei, {
+          gasLimit: 100000n,
+        });
+      }
+    } catch (e) {
+      console.warn("[SHIELD] Could not check owner:", e);
+    }
+
+    // Not the owner — cannot self-serve. Throw with instructions.
+    throw new Error(
+      "SHIELD tokens must be distributed by the contract owner. " +
+      "Run: npx hardhat run scripts/distribute-shield.js --network sepolia"
+    );
+  }
+
+  /**
+   * Check if the connected wallet is the deployer/owner of the SHIELD token.
+   */
+  public async isShieldOwner(): Promise<boolean> {
+    if (!this.shieldToken) await this.init();
+    if (!this.shieldToken || !walletConnector.address) return false;
+    try {
+      const owner = await this.shieldToken.owner();
+      return owner.toLowerCase() === walletConnector.address.toLowerCase();
+    } catch {
+      return false;
+    }
   }
 
   // Quadratic Voting Functions

@@ -96,6 +96,8 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
   const [totalVotes, setTotalVotes] = useState(0);
   const [votingAccuracy, setVotingAccuracy] = useState(0);
   const [isVoting, setIsVoting] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   // Fetch data callback
   const fetchData = useCallback(async () => {
@@ -110,6 +112,10 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
         walletConnector.address,
       );
       setUserShield(shieldBalance);
+
+      // Check if this wallet is the SHIELD owner (can mint)
+      const ownerCheck = await contractService.isShieldOwner();
+      setIsOwner(ownerCheck);
 
       // Get user's voting stats
       const stats = await contractService.getUserVotingStats(
@@ -170,6 +176,37 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
       contractService.off("VoteCast", handleNewVote);
     };
   }, [fetchData, toast]);
+
+  // Handle claiming SHIELD tokens (owner mints, others get instructions)
+  const handleClaimShield = async () => {
+    try {
+      setIsClaiming(true);
+      setError(null);
+
+      const tx = await contractService.claimShieldTokens("100");
+      await tx.wait();
+
+      toast({
+        title: "SHIELD Tokens Claimed",
+        description: "100 SHIELD tokens have been minted to your wallet!",
+      } as ToastProps);
+
+      // Refresh balance
+      const newBalance = await contractService.getShieldBalance(walletConnector.address);
+      setUserShield(newBalance);
+    } catch (error: any) {
+      console.error("Claim error:", error);
+      const msg = error.message || "Failed to claim tokens";
+      setError(msg);
+      toast({
+        title: "Claim Failed",
+        description: msg,
+        variant: "destructive",
+      } as ToastProps);
+    } finally {
+      setIsClaiming(false);
+    }
+  };
 
   // Handle quadratic voting
   const handleVote = async (
@@ -367,6 +404,24 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
                   </Tooltip>
                 </div>
                 <div className="text-sm text-gray-400">Available Balance</div>
+                {parseFloat(userShield || "0") === 0 && walletConnector.address && (
+                  <div className="mt-2">
+                    {isOwner ? (
+                      <Button
+                        size="sm"
+                        className="bg-cyan-600/80 hover:bg-cyan-600 text-white text-xs"
+                        onClick={handleClaimShield}
+                        disabled={isClaiming}
+                      >
+                        {isClaiming ? "Minting..." : "Mint 100 SHIELD"}
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-yellow-400 mt-1">
+                        Contact the deployer to receive SHIELD tokens for voting
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="text-center p-4 rounded-lg bg-white/5 border border-white/10">
