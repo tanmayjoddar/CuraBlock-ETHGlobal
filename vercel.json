@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://curablock-ethglobal.onrender.com/api/:path*"
+    },
+    {
+      "source": "/ml-api/:path*",
+      "destination": "https://ml-fraud-transaction-detection.onrender.com/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/"
     }

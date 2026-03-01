@@ -35,7 +35,7 @@ import { ethers } from "ethers";
 const ETHERSCAN_ENDPOINTS: Record<number, string> = {
   1: "https://api.etherscan.io/api",
   5: "https://api-goerli.etherscan.io/api",
-  11155111: "https://api-sepolia.etherscan.io/api",
+  11155111: "https://api.etherscan.io/v2/api?chainid=11155111",
 };
 
 interface EtherscanTx {
@@ -72,7 +72,8 @@ async function fetchEtherscanTxList(
   if (!base) return null;
 
   try {
-    const url = `${base}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&sort=asc`;
+    const sep = base.includes("?") ? "&" : "?";
+    const url = `${base}${sep}module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&sort=asc`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
     const data = await resp.json();
     if (data.status === "1" && Array.isArray(data.result)) {
@@ -92,7 +93,8 @@ async function fetchEtherscanTokenTxList(
   if (!base) return null;
 
   try {
-    const url = `${base}?module=account&action=tokentx&address=${address}&startblock=0&endblock=99999999&sort=asc`;
+    const sep = base.includes("?") ? "&" : "?";
+    const url = `${base}${sep}module=account&action=tokentx&address=${address}&startblock=0&endblock=99999999&sort=asc`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
     const data = await resp.json();
     if (data.status === "1" && Array.isArray(data.result)) {

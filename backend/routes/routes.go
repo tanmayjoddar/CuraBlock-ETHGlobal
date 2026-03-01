@@ -19,7 +19,7 @@ func SetupMainRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 	// Configure CORS
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "https://*.onrender.com", "https://*.vercel.app"},
+		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "https://cura-block-eth-global.vercel.app", "https://curablock-ethglobal.onrender.com"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Wallet-Address", "X-Wallet-Signature", "X-Wallet-Message", "X-User-Address"},
 		AllowCredentials: true,

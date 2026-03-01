@@ -16,6 +16,7 @@ interface ImportMetaEnv {
 
   // API / Backend
   readonly VITE_API_URL: string;
+  readonly VITE_ETHERSCAN_API_KEY: string;
 
   // WalletConnect
   readonly VITE_WALLET_CONNECT_PROJECT_ID: string;
