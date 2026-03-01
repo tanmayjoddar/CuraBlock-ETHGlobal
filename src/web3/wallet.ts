@@ -13,14 +13,32 @@ import { NETWORK_INFO, isSepoliaNetwork } from "./utils";
 import { IMEVProtection, createMEVProtection } from "./mev-protection";
 
 /**
- * Patch a BrowserProvider for legacy (type 0) transactions.
- * Kept as a no-op for Sepolia since it supports EIP-1559 natively.
- * If you ever need to force legacy tx type, restore the body.
+ * Patch a BrowserProvider to handle MetaMask versions that don't support
+ * eth_maxPriorityFeePerGas. This method is called internally by ethers.js
+ * during transaction population. We override getFeeData() at the provider
+ * level so every signer/contract using this provider is covered.
  */
 export function patchProviderForMonad(
   provider: BrowserProvider,
 ): BrowserProvider {
-  // Sepolia supports EIP-1559, no patching needed
+  const _origGetFeeData = provider.getFeeData.bind(provider);
+  provider.getFeeData = async () => {
+    try {
+      return await _origGetFeeData();
+    } catch {
+      // eth_maxPriorityFeePerGas not supported by this MetaMask version.
+      // Fall back to legacy gasPrice from the latest block's baseFee.
+      try {
+        const block = await provider.getBlock("latest");
+        const gasPrice = block?.baseFeePerGas
+          ? block.baseFeePerGas * 2n
+          : 2_000_000_000n;
+        return new ethers.FeeData(gasPrice, null, null);
+      } catch {
+        return new ethers.FeeData(2_000_000_000n, null, null);
+      }
+    }
+  };
   return provider;
 }
 

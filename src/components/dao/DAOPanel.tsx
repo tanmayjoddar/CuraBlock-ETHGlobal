@@ -43,7 +43,8 @@ interface ScamReport {
   timestamp: Date;
   votesFor: string; // Wei string from contract
   votesAgainst: string; // Wei string from contract
-  status: "active" | "approved" | "rejected";
+  status: "active" | "approved" | "rejected" | "ended";
+  endTime?: number;
   category?: string;
 }
 
@@ -244,6 +245,16 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
       if (needsApproval) {
         const approveTx = await contractService.approveShield(tokensWei);
         await approveTx.wait();
+
+        // Re-verify allowance to catch silent approve failures
+        const stillNeedsApproval =
+          await contractService.needsShieldApproval(tokensWei);
+        if (stillNeedsApproval) {
+          throw new Error(
+            "SHIELD token approval failed — the approve transaction completed but the allowance didn't update. Please try again.",
+          );
+        }
+        console.log("[DAO] Post-approve allowance verified OK");
       }
 
       // Cast the vote with quadratic voting power
@@ -324,6 +335,8 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
         return "text-green-400 bg-green-500/20 border-green-500/30";
       case "rejected":
         return "text-red-400 bg-red-500/20 border-red-500/30";
+      case "ended":
+        return "text-orange-400 bg-orange-500/20 border-orange-500/30";
       default:
         return "text-yellow-400 bg-yellow-500/20 border-yellow-500/30";
     }
@@ -579,6 +592,38 @@ const DAOPanel = ({ onNavigateToReports }: DAOPanelProps) => {
                     onVote={handleVote}
                     isVoting={isVoting && userVotes[proposal.id] !== null}
                   />
+                )}
+
+                {proposal.status === "ended" && (
+                  <div className="flex items-center justify-between p-3 bg-orange-900/20 border border-orange-500/30 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="h-4 w-4 text-orange-400" />
+                      <span className="text-orange-300 text-sm">
+                        Voting ended — ready to execute
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                      onClick={async () => {
+                        try {
+                          setIsVoting(true);
+                          const tx = await contractService.executeProposal(proposal.id.toString());
+                          await tx.wait();
+                          toast({ title: "Proposal Executed", description: "The scam report has been finalized on-chain." } as ToastProps);
+                          const reports = await contractService.getScamReports();
+                          setProposals(reports.map(r => ({ ...r, category: getCategoryFromDescription(r.description) })));
+                        } catch (err: any) {
+                          toast({ title: "Execution Failed", description: err.message || "Could not execute proposal.", variant: "destructive" } as ToastProps);
+                        } finally {
+                          setIsVoting(false);
+                        }
+                      }}
+                      disabled={isVoting}
+                    >
+                      Execute Proposal
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>

@@ -25,8 +25,10 @@ import addresses from "./addresses.json";
 
 /**
  * Safely get gas overrides for transactions.
- * Some MetaMask versions don't support eth_maxPriorityFeePerGas, so we
- * try EIP-1559 first and fall back to legacy gasPrice.
+ * The BrowserProvider is already patched (patchProviderForMonad) to handle
+ * MetaMask versions that don't support eth_maxPriorityFeePerGas. This
+ * function adds gasLimit and forces legacy (type 0) transactions for
+ * maximum compatibility.
  */
 async function safeGasOverrides(
   provider: ethers.BrowserProvider | null | undefined,
@@ -43,21 +45,13 @@ async function safeGasOverrides(
       };
     }
     if (feeData.gasPrice) {
-      return { gasLimit, gasPrice: feeData.gasPrice };
+      // Force legacy tx type so ethers.js doesn't internally call EIP-1559 methods
+      return { gasLimit, gasPrice: feeData.gasPrice, type: 0 };
     }
   } catch {
-    // eth_maxPriorityFeePerGas not supported — fall back to legacy
-    try {
-      const block = await provider.getBlock("latest");
-      const gasPrice = block?.baseFeePerGas
-        ? block.baseFeePerGas * 2n
-        : 2_000_000_000n;
-      return { gasLimit, gasPrice };
-    } catch {
-      // absolute fallback
-    }
+    // Shouldn't reach here with patched provider, but fallback just in case
   }
-  return { gasLimit, gasPrice: 2_000_000_000n };
+  return { gasLimit, gasPrice: 2_000_000_000n, type: 0 };
 }
 
 // ABI for the QuadraticVoting contract
@@ -675,6 +669,20 @@ class ContractService extends EventEmitter {
   }
 
   /**
+   * Execute a proposal whose voting period has ended.
+   * This tallies votes, marks the proposal as executed, returns staked tokens,
+   * and (if passed) adds the address to the on-chain scam database.
+   */
+  public async executeProposal(
+    proposalId: string,
+  ): Promise<ethers.ContractTransactionResponse> {
+    const { voting } = await this.getSignerContract();
+    const overrides = await safeGasOverrides(walletConnector.provider, 300000n);
+    const pid = ethers.getBigInt(proposalId);
+    return voting.executeProposal(pid, overrides);
+  }
+
+  /**
    * Claim SHIELD tokens for voting.
    * - If connected wallet IS the deployer/owner → calls mint() to create new tokens
    * - Otherwise → the deployer must transfer tokens (use distribute-shield.js script)
@@ -759,23 +767,40 @@ class ContractService extends EventEmitter {
       const reports = [];
       for (let i = 1; i <= totalProposals; i++) {
         try {
-          const proposal = await this.votingContract?.getProposal(i);
+          // Use proposals() getter which includes endTime, not getProposal()
+          const full = await this.votingContract?.proposals(i);
+          const endTime = Number(full.endTime ?? full[7] ?? 0);
+          const nowSec = Math.floor(Date.now() / 1000);
+          const isActive = full.isActive ?? full[8];
+          const executed = full.executed ?? full[9];
+
+          // Derive true status: a proposal is only voteable if isActive AND endTime hasn't passed
+          let status: "active" | "approved" | "rejected" | "ended";
+          if (!isActive && executed) {
+            // Already executed
+            const votesFor = BigInt(full.votesFor ?? full[4] ?? 0);
+            const votesAgainst = BigInt(full.votesAgainst ?? full[5] ?? 0);
+            status = votesFor > votesAgainst ? "approved" : "rejected";
+          } else if (isActive && endTime > 0 && nowSec > endTime) {
+            // Voting period ended but not yet executed
+            status = "ended";
+          } else if (isActive) {
+            status = "active";
+          } else {
+            status = "rejected";
+          }
+
           reports.push({
             id: i,
-            reporter: proposal.reporter || proposal[0],
-            suspiciousAddress: proposal.suspiciousAddress || proposal[1],
-            description: proposal.description || proposal[2],
-            evidence: proposal.evidence || proposal[3],
-            timestamp: new Date(),
-            votesFor: (proposal.votesFor || proposal[4]).toString(),
-            votesAgainst: (proposal.votesAgainst || proposal[5]).toString(),
-            status:
-              (proposal.isActive ?? proposal[6])
-                ? "active"
-                : BigInt(proposal.votesFor || proposal[4]) >
-                    BigInt(proposal.votesAgainst || proposal[5])
-                  ? "approved"
-                  : "rejected",
+            reporter: full.reporter ?? full[0],
+            suspiciousAddress: full.suspiciousAddress ?? full[1],
+            description: full.description ?? full[2] ?? "Scam report",
+            evidence: full.evidence ?? full[3] ?? "",
+            timestamp: new Date(Number(full.startTime ?? full[6] ?? 0) * 1000),
+            votesFor: (full.votesFor ?? full[4] ?? 0).toString(),
+            votesAgainst: (full.votesAgainst ?? full[5] ?? 0).toString(),
+            endTime,
+            status,
           });
         } catch (err) {
           console.warn(`Failed to fetch proposal ${i}:`, err);
@@ -824,11 +849,12 @@ class ContractService extends EventEmitter {
     if (!voter) throw new Error("Wallet not connected");
 
     // 1. Check proposal exists and is active, and voting period hasn't ended
-    try {
-      // Use proposals() auto-getter which includes startTime and endTime
+    {
       const p = await voting.proposals(proposalId);
       const isActive = p.isActive ?? p[8];
-      if (!isActive) throw new Error("This proposal is no longer active — it may have already been executed.");
+      if (!isActive) {
+        throw new Error("This proposal is no longer active — it may have already been executed.");
+      }
 
       const endTime = Number(p.endTime ?? p[7] ?? 0);
       if (endTime > 0) {
@@ -839,21 +865,16 @@ class ContractService extends EventEmitter {
           throw new Error(`Voting period has ended (${ago} minute(s) ago). Create a new proposal to vote.`);
         }
       }
-    } catch (preflight: any) {
-      // Re-throw our custom errors; swallow decode errors from missing contract
-      if (preflight.message && !preflight.message.includes("could not decode") && !preflight.message.includes("BAD_DATA")) {
-        throw preflight;
-      }
+      console.log("[DAO] Pre-flight: proposal is active, endTime OK");
     }
 
     // 2. Check if already voted
-    try {
+    {
       const vote = await voting.getVote(proposalId, voter);
       if (vote.hasVoted || vote[0]) {
         throw new Error("You have already voted on this proposal.");
       }
-    } catch (e: any) {
-      if (e.message?.includes("already voted")) throw e;
+      console.log("[DAO] Pre-flight: not yet voted, OK");
     }
 
     // 3. Check SHIELD token balance

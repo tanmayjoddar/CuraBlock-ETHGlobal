@@ -630,7 +630,8 @@ const TransactionInterceptor: React.FC<TransactionInterceptorProps> = ({
     recipientContext.nonce === 0;
 
   // ML score (0-100) — raw confidence from ML API
-  let mlScore = mlResponse ? Math.round(mlResponse.risk_score * 100) : 0;
+  const rawMlScore = mlResponse ? Math.round(mlResponse.risk_score * 100) : 0;
+  let mlScore = rawMlScore;
   const mlPrediction = mlResponse?.prediction ?? "Unknown";
   const mlIsSafe = mlPrediction === "Non-Fraud";
 
@@ -646,28 +647,17 @@ const TransactionInterceptor: React.FC<TransactionInterceptorProps> = ({
     );
   }
 
-  // DAO-informed ML boost: when the community has confirmed this address as scam,
-  // feed that intelligence back into the ML layer score (federated learning effect).
-  if (daoData?.isScammer && mlScore < 90) {
-    console.log(
-      `[Scoring] DAO-confirmed scam → boosting ML score from ${mlScore} to 95`,
-    );
-    mlScore = 95;
-  } else if (daoData && daoData.scamScore > 0 && mlScore < daoData.scamScore) {
-    console.log(
-      `[Scoring] DAO scamScore(${daoData.scamScore}) > ML(${mlScore}) → boosting ML to ${daoData.scamScore}`,
-    );
-    mlScore = Math.max(mlScore, daoData.scamScore);
-  }
-
   // Compute combined score incorporating DAO community data
+  // Layer 1 (mlScore) stays as the pure ML assessment.
+  // Layer 2 (daoBoostAmount) is ONLY the extra % from DAO.
+  // Combined = mlScore + daoBoostAmount.
   let combinedScore = mlScore;
   let daoBoostAmount = 0;
 
   if (daoData) {
     if (daoData.isScammer) {
       // RULE 1: DAO-confirmed scam ALWAYS takes priority
-      combinedScore = 95;
+      combinedScore = Math.max(95, mlScore);
       daoBoostAmount = combinedScore - mlScore;
     } else if (mlScore > 60 && daoData.scamScore > 30) {
       // RULE 2: Both layers agree it's dangerous
@@ -685,6 +675,10 @@ const TransactionInterceptor: React.FC<TransactionInterceptorProps> = ({
       daoBoostAmount = 30 - mlScore;
     }
   }
+
+  console.log(
+    `[Scoring] Layer 1 (ML): ${mlScore}% | Layer 2 (DAO boost): +${daoBoostAmount}% | Combined: ${combinedScore}%`,
+  );
 
   const riskScore = combinedScore;
   // Color/level based on prediction: Non-Fraud = Low (green), Fraud = threshold-based
@@ -808,7 +802,7 @@ const TransactionInterceptor: React.FC<TransactionInterceptorProps> = ({
                   </div>
                   <div className="text-xs text-gray-500">
                     {mlRawResponse?.prediction
-                      ? `External ML: ${mlRawResponse.prediction}${(mlResponse as any)?.typeLabel ? ` · ${(mlResponse as any).typeLabel}` : (mlRawResponse.type ?? mlRawResponse.Type) ? ` · ${String(mlRawResponse.type ?? mlRawResponse.Type).split(" - ")[0]}` : ""}${(mlResponse as any)?.confidence ? ` (${(mlResponse as any).confidence})` : mlRawResponse.confidence ? ` (${mlRawResponse.confidence})` : ""}${daoData?.isScammer ? " — 🚨 boosted by DAO confirmation" : isNewEmptyWallet && !daoHasEvidence && mlRawResponse.prediction === "Fraud" ? " — adjusted (new wallet)" : ""}`
+                      ? `External ML: ${mlRawResponse.prediction}${(mlResponse as any)?.typeLabel ? ` · ${(mlResponse as any).typeLabel}` : (mlRawResponse.type ?? mlRawResponse.Type) ? ` · ${String(mlRawResponse.type ?? mlRawResponse.Type).split(" - ")[0]}` : ""}${(mlResponse as any)?.confidence ? ` (${(mlResponse as any).confidence})` : mlRawResponse.confidence ? ` (${mlRawResponse.confidence})` : ""}${isNewEmptyWallet && !daoHasEvidence && mlRawResponse.prediction === "Fraud" ? " — adjusted (new wallet)" : ""}`
                       : "Real-time fraud detection"}
                   </div>
                 </div>
