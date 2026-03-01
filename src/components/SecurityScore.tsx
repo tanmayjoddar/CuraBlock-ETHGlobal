@@ -31,6 +31,10 @@ interface CheckResult {
   isScam: boolean;
   score: number;
   address: string;
+  /** "ok" = contract read succeeded, "no_contract" = contract not deployed, "error" = read failed */
+  status?: "ok" | "no_contract" | "error";
+  /** Human-readable error/info string */
+  statusMsg?: string;
 }
 
 interface ActivityLog {
@@ -156,27 +160,64 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
   }, [fetchOpsData]);
 
   // ── Check address against on-chain scam registry ──
+  // Uses a DIRECT Sepolia RPC provider so the read never depends on
+  // whichever chain MetaMask happens to be connected to.
   const handleCheckAddress = async () => {
     if (!checkAddress || checkAddress.length < 42) return;
     setChecking(true);
     setCheckResult(null);
+
+    const { ethers } = await import("ethers");
+    const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
+    const QV_ADDRESS = contractService.getContractAddress();
+    const QV_ABI = [
+      "function isScammer(address) view returns (bool)",
+      "function scamScore(address) view returns (uint256)",
+      "function proposalCount() view returns (uint256)",
+    ];
+
     try {
-      // Ensure wallet is on Sepolia (chain 11155111) for on-chain reads
-      if (walletConnector.chainId && walletConnector.chainId !== 11155111) {
-        console.warn(`[SecurityScore] Wrong chain ${walletConnector.chainId}, switching to Sepolia...`);
-        const { switchToMonadNetwork } = await import("@/web3/wallet");
-        await switchToMonadNetwork(); // This actually switches to Sepolia
+      // 1. Build a read-only provider pointed straight at Sepolia
+      const sepoliaProvider = new ethers.JsonRpcProvider(SEPOLIA_RPC);
+
+      // 2. Verify the QuadraticVoting contract is actually deployed
+      const code = await sepoliaProvider.getCode(QV_ADDRESS);
+      if (!code || code === "0x") {
+        console.warn("[SecurityScore] No bytecode at", QV_ADDRESS, "on Sepolia");
+        setCheckResult({
+          isScam: false,
+          score: 0,
+          address: checkAddress,
+          status: "no_contract",
+          statusMsg: `QuadraticVoting contract not deployed at ${QV_ADDRESS} on Sepolia. Cannot verify.`,
+        });
+        return;
       }
-      const [isScam, scamScore] = await Promise.all([
-        contractService.isScamAddress(checkAddress),
-        contractService.getScamScore(checkAddress).catch(() => 0),
+
+      // 3. Read isScammer + scamScore from the live Sepolia contract
+      const qv = new ethers.Contract(QV_ADDRESS, QV_ABI, sepoliaProvider);
+      const [isScam, rawScore] = await Promise.all([
+        qv.isScammer(checkAddress),
+        qv.scamScore(checkAddress),
       ]);
-      setCheckResult({ isScam, score: scamScore, address: checkAddress });
+      const score = Number(rawScore ?? 0);
+
+      console.log(
+        `[SecurityScore] Direct Sepolia read → isScammer(${checkAddress}) = ${isScam}, scamScore = ${score}  |  contract: ${QV_ADDRESS}`,
+      );
+
+      setCheckResult({
+        isScam: !!isScam,
+        score: Math.min(100, score),
+        address: checkAddress,
+        status: "ok",
+      });
+
       // Log this scan
       const scanLog = {
         type: "address_check",
         address: checkAddress,
-        isScam,
+        isScam: !!isScam,
         timestamp: Date.now(),
       };
       const existing = JSON.parse(
@@ -185,9 +226,20 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
       existing.push(scanLog);
       localStorage.setItem("transaction-logs", JSON.stringify(existing));
       setActivityLogs((prev) => [scanLog, ...prev].slice(0, 50));
-    } catch (err) {
-      console.error("Address check failed:", err);
-      setCheckResult({ isScam: false, score: 0, address: checkAddress });
+    } catch (err: any) {
+      console.error("[SecurityScore] Address check failed:", err);
+      const isBadData =
+        err?.code === "BAD_DATA" ||
+        err?.message?.includes("could not decode");
+      setCheckResult({
+        isScam: false,
+        score: 0,
+        address: checkAddress,
+        status: isBadData ? "no_contract" : "error",
+        statusMsg: isBadData
+          ? "Contract returned invalid data — it may not be the QuadraticVoting contract on this network."
+          : `On-chain read failed: ${err?.message?.slice(0, 120) ?? "unknown error"}`,
+      });
     } finally {
       setChecking(false);
     }
@@ -487,13 +539,17 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
                 {checkResult && (
                   <div
                     className={`rounded-xl border p-5 ${
-                      checkResult.isScam
-                        ? "bg-red-500/[0.06] border-red-500/20"
-                        : "bg-emerald-500/[0.06] border-emerald-500/20"
+                      checkResult.status === "no_contract" || checkResult.status === "error"
+                        ? "bg-amber-500/[0.06] border-amber-500/20"
+                        : checkResult.isScam
+                          ? "bg-red-500/[0.06] border-red-500/20"
+                          : "bg-emerald-500/[0.06] border-emerald-500/20"
                     }`}
                   >
                     <div className="flex items-center gap-3 mb-3">
-                      {checkResult.isScam ? (
+                      {checkResult.status === "no_contract" || checkResult.status === "error" ? (
+                        <AlertTriangle className="w-6 h-6 text-amber-400" />
+                      ) : checkResult.isScam ? (
                         <XCircle className="w-6 h-6 text-red-400" />
                       ) : (
                         <CheckCircle2 className="w-6 h-6 text-emerald-400" />
@@ -501,20 +557,31 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
                       <div>
                         <div
                           className={`font-semibold ${
-                            checkResult.isScam
-                              ? "text-red-400"
-                              : "text-emerald-400"
+                            checkResult.status === "no_contract" || checkResult.status === "error"
+                              ? "text-amber-400"
+                              : checkResult.isScam
+                                ? "text-red-400"
+                                : "text-emerald-400"
                           }`}
                         >
-                          {checkResult.isScam
-                            ? "\u26a0 DAO-Confirmed Scammer"
-                            : "\u2713 Address Clean"}
+                          {checkResult.status === "no_contract"
+                            ? "\u26a0 Contract Not Found on Sepolia"
+                            : checkResult.status === "error"
+                              ? "\u26a0 On-Chain Read Failed"
+                              : checkResult.isScam
+                                ? "\u26a0 DAO-Confirmed Scammer"
+                                : "\u2713 Not Flagged in DAO Registry"}
                         </div>
                         <div className="text-xs text-white/30 font-mono">
                           {checkResult.address}
                         </div>
                       </div>
                     </div>
+                    {checkResult.statusMsg && (
+                      <div className="text-sm text-amber-300/70 mb-2">
+                        {checkResult.statusMsg}
+                      </div>
+                    )}
                     {checkResult.isScam && checkResult.score > 0 && (
                       <div className="text-sm text-white/50">
                         Scam score:{" "}
@@ -525,8 +592,8 @@ export const SecurityScore: React.FC<SecurityScoreProps> = () => {
                       </div>
                     )}
                     <p className="text-xs text-white/20 mt-2">
-                      Source: QuadraticVoting contract <code>isScammer()</code>{" "}
-                      on-chain read
+                      Source: QuadraticVoting contract{" "}
+                      <code>isScammer()</code> — direct Sepolia RPC read
                     </p>
                   </div>
                 )}
