@@ -18,7 +18,9 @@ const MONAD_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
 const getReadProvider = () => new JsonRpcProvider(MONAD_RPC);
 
 // Etherscan V2 API (unified endpoint for all chains)
-const ETHERSCAN_KEY = ((import.meta as any).env?.VITE_ETHERSCAN_API_KEY || "").trim();
+const ETHERSCAN_KEY = (
+  (import.meta as any).env?.VITE_ETHERSCAN_API_KEY || ""
+).trim();
 const etherscanBase = `https://api.etherscan.io/v2/api?chainid=11155111`;
 const etherscanApiSuffix = ETHERSCAN_KEY ? `&apikey=${ETHERSCAN_KEY}` : "";
 
@@ -546,7 +548,7 @@ const WalletAnalytics: React.FC<WalletAnalyticsProps> = ({ walletAddress }) => {
               score: scamStatusMap[counterparty?.toLowerCase()]
                 ? 0.95
                 : isFailed
-                  ? 0.30
+                  ? 0.3
                   : 0.05,
               address: counterparty || "",
               blocked: isFailed,

@@ -130,13 +130,13 @@ Every other Web3 security tool is **one trick**:
 
 ## SMART CONTRACT REGISTRY
 
-| Contract             | Address                                      | Purpose                               |
-| -------------------- | -------------------------------------------- | ------------------------------------- |
-| QuadraticVoting      | `0x810DA31a1eFB767652b2f969972d2A612AfdEc5C` | DAO scam proposals + √(SHIELD) voting |
-| ShieldToken          | `0x4866507F82F870beD552884F700C54D8A6Dcb061` | ERC-20 governance token               |
-| CivicSBT             | `0xD820d3594b71E3a40c97Fdb89EaF06aDBBaB0D8E` | Soulbound Token minting & metadata    |
-| WalletVerifier       | `0xe73f31f7D784b29a8625c056510A8E9352E3a95b` | On-chain trust score (40/30/30)       |
-| CivicGatedWallet     | `0x233015A64Cb5c209bf3E1BB52db4338BEf1BfBB7` | High-value tx identity gating         |
+| Contract         | Address                                      | Purpose                               |
+| ---------------- | -------------------------------------------- | ------------------------------------- |
+| QuadraticVoting  | `0x810DA31a1eFB767652b2f969972d2A612AfdEc5C` | DAO scam proposals + √(SHIELD) voting |
+| ShieldToken      | `0x4866507F82F870beD552884F700C54D8A6Dcb061` | ERC-20 governance token               |
+| CivicSBT         | `0xD820d3594b71E3a40c97Fdb89EaF06aDBBaB0D8E` | Soulbound Token minting & metadata    |
+| WalletVerifier   | `0xe73f31f7D784b29a8625c056510A8E9352E3a95b` | On-chain trust score (40/30/30)       |
+| CivicGatedWallet | `0x233015A64Cb5c209bf3E1BB52db4338BEf1BfBB7` | High-value tx identity gating         |
 
 **Network:** Sepolia Testnet | **Chain ID:** 11155111 | **RPC:** `https://ethereum-sepolia-rpc.publicnode.com`
 
@@ -662,10 +662,10 @@ If a judge asks "sum this up in one sentence," say:
 | ML API slow (Render cold start ~30s) | "Free tier, 30-second cold start. Here's the API response I cached:" → show curl output or screenshot                                                             |
 | ML returns 10% instead of 85%        | "ML sees small tx as safe — exploit was years ago. But watch Layer 2 — DAO still catches it at 95%. That's the point of two layers."                              |
 | DAO boost shows +0% in ACT 6         | You skipped `demo-execute.js`. Explain verbally: "Once `executeProposal()` fires, `isScammer` returns true and Layer 2 activates. Let me show the contract code." |
-| Transaction reverts                  | "Gas edge case on testnet. Let me show you the successful prep-run txs on Sepolia Etherscan." Switch to explorer tab.                                                |
+| Transaction reverts                  | "Gas edge case on testnet. Let me show you the successful prep-run txs on Sepolia Etherscan." Switch to explorer tab.                                             |
 | SBT trust score shows 0%             | Fresh wallet — expected. "Zero because I haven't voted yet. After ACT 5 that bar moves up — watch."                                                               |
-| SHIELD balance shows 0               | Run `npx hardhat run scripts/distribute-shield.js --network sepolia` or use the "Mint 100 SHIELD" button if you're the deployer wallet.                             |
-| DAO proposal doesn't appear          | Check Reports tab for blocked txs. Say: "Backend event listener indexes it — let me show you the `ProposalCreated` event on Etherscan directly."                    |
+| SHIELD balance shows 0               | Run `npx hardhat run scripts/distribute-shield.js --network sepolia` or use the "Mint 100 SHIELD" button if you're the deployer wallet.                           |
+| DAO proposal doesn't appear          | Check Reports tab for blocked txs. Say: "Backend event listener indexes it — let me show you the `ProposalCreated` event on Etherscan directly."                  |
 
 ---
 
