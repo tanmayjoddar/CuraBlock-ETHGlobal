@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/ML-Fraud_Detection-red?style=for-the-badge" />
 </p>
 
-# 🛡️ NeuroShield — Next-Gen Web3 Security
+# 🛡️ CuraBlock — Next-Gen Web3 Security
 
 **The world's first AI-powered smart wallet that learns from its community.**
 
