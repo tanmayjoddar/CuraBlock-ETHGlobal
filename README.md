@@ -10,7 +10,7 @@
 
 **The world's first AI-powered smart wallet that learns from its community.**
 
-NeuroShield isn't just another wallet — it's a self-improving security system. Every scam you report makes the AI smarter. Every vote you cast in the DAO trains the model. Your on-chain reputation is permanent, soulbound, and impossible to fake. This is Web3 security that gets better every single day.
+CuraBlock isn't just another wallet — it's a self-improving security system. Every scam you report makes the AI smarter. Every vote you cast in the DAO trains the model. Your on-chain reputation is permanent, soulbound, and impossible to fake. This is Web3 security that gets better every single day.
 
 ---
 
@@ -20,7 +20,7 @@ Crypto users lose **billions** every year to scams, phishing, rug pulls, and fra
 
 ## The Solution
 
-NeuroShield combines **AI fraud detection**, **community-driven DAO governance**, and **permanent on-chain reputation** into a single, self-improving flywheel:
+CuraBlock combines **AI fraud detection**, **community-driven DAO governance**, and **permanent on-chain reputation** into a single, self-improving flywheel:
 
 ```
 You report a scam → Community votes on it → Confirmed scams train the AI
@@ -42,7 +42,7 @@ Community members use SHIELD tokens to vote on scam reports. But here's the twis
 
 ### The Self-Improving Flywheel
 
-This is what makes NeuroShield different from everything else. When the DAO confirms a scam address, that data feeds directly back into the ML model. The function `getDAOScamBoost()` adds up to **+50% risk score boost** to addresses flagged by the community. The AI doesn't just learn from historical data — it learns from your community in real-time.
+This is what makes CuraBlock different from everything else. When the DAO confirms a scam address, that data feeds directly back into the ML model. The function `getDAOScamBoost()` adds up to **+50% risk score boost** to addresses flagged by the community. The AI doesn't just learn from historical data — it learns from your community in real-time.
 
 ### Soulbound Token (SBT) — On-Chain Reputation
 
@@ -59,7 +59,7 @@ The metadata is stored as **Base64-encoded JSON directly inside the smart contra
 
 ### Civic Face Biometrics & Identity Verification
 
-Before you get full access to NeuroShield, you verify your identity through **Civic's biometric authentication**. This prevents Sybil attacks (one person creating multiple accounts to game the system) and ensures every participant in the DAO is a real, unique human. Your verification status is linked to your SBT.
+Before you get full access to CuraBlock, you verify your identity through **Civic's biometric authentication**. This prevents Sybil attacks (one person creating multiple accounts to game the system) and ensures every participant in the DAO is a real, unique human. Your verification status is linked to your SBT.
 
 ### Social Recovery Wallet
 
@@ -67,7 +67,7 @@ Lost your private keys? Don't panic. Designate trusted friends or family as **gu
 
 ### MEV Protection
 
-NeuroShield protects your transactions from front-running and sandwich attacks. Before you trade on a DEX, the system checks for MEV vulnerability and can route your transaction through **private mempools** (like Flashbots) so bots can't see it coming.
+CuraBlock protects your transactions from front-running and sandwich attacks. Before you trade on a DEX, the system checks for MEV vulnerability and can route your transaction through **private mempools** (like Flashbots) so bots can't see it coming.
 
 ### Wallet Analytics Dashboard
 
@@ -112,8 +112,8 @@ Visualize your on-chain footprint — transaction patterns, token flows, spendin
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/tanmayjoddar/NeuroShield-Diversion.git
-cd NeuroShield-Diversion
+git clone https://github.com/tanmayjoddar/CuraBlock-Diversion.git
+cd CuraBlock-Diversion
 ```
 
 ### 2. Start the Frontend
@@ -181,7 +181,7 @@ python index.py
 ## 📁 Project Structure
 
 ```
-NeuroShield-Diversion/
+CuraBlock-Diversion/
 ├── src/                    # React frontend
 │   ├── components/         # UI components (SBT, DAO, Wallet, etc.)
 │   ├── pages/              # Route pages (Index, SBT, CivicAuth)
@@ -232,13 +232,13 @@ NeuroShield-Diversion/
 
 - [SBT Implementation](SBT_IMPLEMENTATION.md) — Full-stack Soulbound Token breakdown
 - [SBT Technical Wiring](SBT_TECHNICAL_WIRING.md) — How SBT connects across all layers
-- [Feature Overview](NEUROSHIELD_FEATURES.md) — Complete feature documentation
+- [Feature Overview](CuraBlock_FEATURES.md) — Complete feature documentation
 - [API Documentation](backend/API_DOCUMENTATION.md) — Backend REST API reference
 - [Monad Deployment Guide](hardhat/MONAD_DEPLOYMENT.md) — Step-by-step contract deployment
 
 ---
 
-## What Makes NeuroShield Different
+## What Makes CuraBlock Different
 
 1. **Self-improving** — The AI gets smarter every time the community confirms a scam
 2. **Fair governance** — Quadratic voting ensures no whale can dominate
